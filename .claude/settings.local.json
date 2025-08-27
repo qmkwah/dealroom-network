@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm test:*)",
+      "mcp__shadcn__list_shadcn_components",
+      "mcp__shadcn__get_component_examples",
+      "Bash(ls:*)",
+      "Bash(pnpm add:*)",
+      "mcp__supabase__list_projects",
+      "Bash(pnpm build:*)",
+      "Bash(grep:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(timeout 10 pnpm dev)",
+      "Bash(git add:*)"
+    ]
+  }
+}
