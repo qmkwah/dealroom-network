@@ -21,13 +21,12 @@ export default function RegisterForm() {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
   })
   
-  const watchUserRole = watch('userRole')
+
   
   const onSubmit = async (data: RegisterInput) => {
     setIsLoading(true)
@@ -54,9 +53,10 @@ export default function RegisterForm() {
       toast.success('Registration successful! Please check your email for verification.')
       router.push('/auth/verify-email')
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error)
-      toast.error(error.message || 'Failed to register')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to register'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }

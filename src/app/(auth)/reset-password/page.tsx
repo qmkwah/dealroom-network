@@ -65,8 +65,9 @@ export default function ResetPasswordPage() {
         router.push('/dashboard')
       }, 2000)
       
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update password')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update password'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -90,7 +91,7 @@ export default function ResetPasswordPage() {
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>
-            You'll be automatically redirected to your dashboard in a few seconds.
+            You&apos;ll be automatically redirected to your dashboard in a few seconds.
           </AlertDescription>
         </Alert>
         
@@ -206,7 +207,7 @@ export default function ResetPasswordPage() {
       {/* Security Note */}
       <Alert>
         <AlertDescription>
-          For your security, you'll be automatically signed in after updating your password.
+          For your security, you&apos;ll be automatically signed in after updating your password.
         </AlertDescription>
       </Alert>
     </div>

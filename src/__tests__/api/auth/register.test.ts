@@ -6,12 +6,15 @@
 import { NextRequest } from 'next/server'
 
 // Mock Supabase client
+const mockSignUp = jest.fn()
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    auth: {
-      signUp: jest.fn(),
-    },
-  })),
+  createClient: jest.fn(() => 
+    Promise.resolve({
+      auth: {
+        signUp: mockSignUp,
+      },
+    })
+  ),
 }))
 
 // Import the route handler (will fail initially - not implemented yet)
@@ -52,6 +55,15 @@ describe('/api/auth/register', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock successful registration
+    mockSignUp.mockResolvedValueOnce({
+      data: { 
+        user: { id: 'user-123', email: 'newuser@example.com' },
+        session: null
+      },
+      error: null
+    })
 
     const req = new NextRequest('http://localhost/api/auth/register', {
       method: 'POST',
@@ -178,6 +190,12 @@ describe('/api/auth/register', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock existing email error
+    mockSignUp.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'User already registered' }
+    })
 
     const req = new NextRequest('http://localhost/api/auth/register', {
       method: 'POST',

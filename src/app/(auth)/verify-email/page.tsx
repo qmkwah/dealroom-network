@@ -39,8 +39,9 @@ export default function VerifyEmailPage() {
       } else {
         toast.error('Unable to resend email. Please try registering again.')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to resend verification email')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification email'
+      toast.error(errorMessage)
     } finally {
       setIsResending(false)
     }
@@ -57,7 +58,7 @@ export default function VerifyEmailPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Check Your Email</h1>
         <p className="text-muted-foreground">
-          We've sent you a verification link to complete your registration
+          We&apos;ve sent you a verification link to complete your registration
         </p>
       </div>
       
@@ -76,14 +77,14 @@ export default function VerifyEmailPage() {
           <ol className="list-decimal list-inside space-y-2 text-sm">
             <li>Check your email inbox (and spam folder)</li>
             <li>Click the verification link we sent you</li>
-            <li>You'll be automatically signed in to your dashboard</li>
+            <li>You&apos;ll be automatically signed in to your dashboard</li>
             <li>Complete your professional profile to start networking</li>
           </ol>
           
           {!emailResent ? (
             <div className="pt-4 border-t">
               <p className="text-sm text-muted-foreground mb-3">
-                Didn't receive the email?
+                Didn&apos;t receive the email?
               </p>
               <Button 
                 variant="outline" 

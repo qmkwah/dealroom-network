@@ -6,12 +6,15 @@
 import { NextRequest } from 'next/server'
 
 // Mock Supabase client
+const mockSignOut = jest.fn()
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    auth: {
-      signOut: jest.fn(),
-    },
-  })),
+  createClient: jest.fn(() => 
+    Promise.resolve({
+      auth: {
+        signOut: mockSignOut,
+      },
+    })
+  ),
 }))
 
 // Import the route handler (will fail initially - not implemented yet)
@@ -35,6 +38,9 @@ describe('/api/auth/logout', () => {
       return
     }
 
+    // Mock successful logout
+    mockSignOut.mockResolvedValueOnce({ error: null })
+
     const req = new NextRequest('http://localhost/api/auth/logout', {
       method: 'POST',
     })
@@ -52,6 +58,9 @@ describe('/api/auth/logout', () => {
       return
     }
 
+    // Mock successful logout for graceful handling test
+    mockSignOut.mockResolvedValueOnce({ error: null })
+
     const req = new NextRequest('http://localhost/api/auth/logout', {
       method: 'POST',
     })
@@ -66,6 +75,9 @@ describe('/api/auth/logout', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock successful logout
+    mockSignOut.mockResolvedValueOnce({ error: null })
 
     const req = new NextRequest('http://localhost/api/auth/logout', {
       method: 'POST',

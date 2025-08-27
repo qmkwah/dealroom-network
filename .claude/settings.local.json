@@ -11,7 +11,16 @@
       "Bash(grep:*)",
       "Bash(pnpm dev:*)",
       "Bash(timeout 10 pnpm dev)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git log:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Read(C:\\C:\\Users\\SONY\\Desktop\\dealroom-network\\.claude/**)",
+      "Read(C:\\C:\\Users\\SONY\\Desktop\\dealroom-network/**)",
+      "Read(C:\\C:\\Users\\SONY\\Desktop\\dealroom-network/**)",
+      "Bash(cat:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm type-check:*)"
     ]
   }
 }

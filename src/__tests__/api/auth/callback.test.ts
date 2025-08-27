@@ -6,12 +6,15 @@
 import { NextRequest } from 'next/server'
 
 // Mock Supabase client
+const mockExchangeCodeForSession = jest.fn()
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    auth: {
-      exchangeCodeForSession: jest.fn(),
-    },
-  })),
+  createClient: jest.fn(() => 
+    Promise.resolve({
+      auth: {
+        exchangeCodeForSession: mockExchangeCodeForSession,
+      },
+    })
+  ),
 }))
 
 // Import the route handler (will fail initially - not implemented yet)
@@ -34,6 +37,9 @@ describe('/api/auth/callback', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock successful code exchange
+    mockExchangeCodeForSession.mockResolvedValueOnce({ error: null })
 
     const req = new NextRequest('http://localhost/api/auth/callback?code=valid_code&next=/dashboard')
 
@@ -77,6 +83,9 @@ describe('/api/auth/callback', () => {
       return
     }
 
+    // Mock successful code exchange
+    mockExchangeCodeForSession.mockResolvedValueOnce({ error: null })
+
     const req = new NextRequest('http://localhost/api/auth/callback?code=valid_code&next=/profile')
 
     const response = await GET(req)
@@ -90,6 +99,9 @@ describe('/api/auth/callback', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock successful code exchange
+    mockExchangeCodeForSession.mockResolvedValueOnce({ error: null })
 
     const req = new NextRequest('http://localhost/api/auth/callback?code=valid_code')
 

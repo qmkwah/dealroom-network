@@ -7,6 +7,14 @@ global.Request = global.Request || class Request {
     this.method = init?.method || 'GET'
     this.headers = new Headers(init?.headers)
     this.cookies = new Map()
+    this._body = init?.body
+  }
+  
+  async json() {
+    if (typeof this._body === 'string') {
+      return JSON.parse(this._body)
+    }
+    return this._body
   }
   
   get(name) {
@@ -19,6 +27,13 @@ global.Response = global.Response || class Response {
     this.body = body
     this.status = init?.status || 200
     this.headers = new Headers(init?.headers)
+  }
+  
+  async json() {
+    if (typeof this.body === 'string') {
+      return JSON.parse(this.body)
+    }
+    return this.body
   }
   
   static json(data, init) {
@@ -58,23 +73,31 @@ jest.mock('next/server', () => ({
   NextResponse: global.Response,
 }))
 
+// Mock Next.js headers
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(() => 
+    Promise.resolve({
+      get: jest.fn((name) => ({ value: `mock-${name}` })),
+      set: jest.fn(),
+      delete: jest.fn(),
+    })
+  ),
+  headers: jest.fn(() =>
+    Promise.resolve({
+      get: jest.fn(),
+      set: jest.fn(),
+    })
+  ),
+}))
+
 // Mock Supabase environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://mock.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'mock-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'mock-service-role-key'
 
-// Mock window.location for redirect tests
-delete global.window.location
-global.window.location = {
-  href: 'http://localhost:3000',
-  origin: 'http://localhost:3000',
-  pathname: '/',
-  search: '',
-  hash: '',
-  assign: jest.fn(),
-  replace: jest.fn(),
-  reload: jest.fn(),
-}
+// Mock window.location for redirect tests (JSDOM compatible)
+// Don't try to override location in setup - let JSDOM handle it
+// Individual tests can mock location as needed
 
 // Suppress console errors during testing
 const originalError = console.error

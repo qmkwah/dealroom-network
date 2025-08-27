@@ -6,12 +6,15 @@
 import { NextRequest } from 'next/server'
 
 // Mock Supabase client
+const mockSignInWithPassword = jest.fn()
 jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn(() => ({
-    auth: {
-      signInWithPassword: jest.fn(),
-    },
-  })),
+  createClient: jest.fn(() => 
+    Promise.resolve({
+      auth: {
+        signInWithPassword: mockSignInWithPassword,
+      },
+    })
+  ),
 }))
 
 // Import the route handler (will fail initially - not implemented yet)
@@ -45,6 +48,15 @@ describe('/api/auth/login', () => {
       return
     }
 
+    // Mock successful authentication
+    mockSignInWithPassword.mockResolvedValueOnce({
+      data: { 
+        user: { id: 'user-123', email: 'test@example.com' },
+        session: { access_token: 'mock-token' }
+      },
+      error: null
+    })
+
     const req = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(validLoginData),
@@ -62,6 +74,12 @@ describe('/api/auth/login', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock failed authentication
+    mockSignInWithPassword.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Invalid login credentials' }
+    })
 
     const req = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
@@ -119,6 +137,12 @@ describe('/api/auth/login', () => {
       expect(true).toBe(false) // This will fail - route not implemented
       return
     }
+
+    // Mock unverified email error
+    mockSignInWithPassword.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Email not confirmed' }
+    })
 
     const req = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
