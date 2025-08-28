@@ -2,30 +2,33 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { OpportunityForm } from '@/components/opportunities/forms/OpportunityForm'
-import { type CreateOpportunityInput } from '@/lib/validations/opportunities'
+import { OpportunityFormPRD } from '@/components/opportunities/forms/OpportunityFormPRD'
+import { type OpportunityInput } from '@/lib/validations/opportunity'
 import { toast } from 'sonner'
 
 interface OpportunityData {
   id: string
-  title: string
+  opportunity_name: string
+  opportunity_description: string
   property_type: string
-  description: string
-  street: string
-  city: string
-  state: string
-  zip_code: string
-  country: string
-  square_footage: number
+  property_address: {
+    street: string
+    city: string
+    state: string
+    zip: string
+    country: string
+  }
+  total_square_feet: number
   year_built: number
-  unit_count: number
-  total_investment: number
+  number_of_units: number
+  total_project_cost: number
+  equity_requirement: number
   minimum_investment: number
-  target_return: number
-  hold_period: number
-  acquisition_fee: number
-  management_fee: number
-  disposition_fee: number
+  maximum_investment: number
+  target_raise_amount: number
+  projected_irr: number
+  projected_hold_period_months: number
+  investment_strategy: string
   status: string
   sponsor_id: string
 }
@@ -63,7 +66,7 @@ export default function EditOpportunityPage() {
     }
   }, [opportunityId, router])
 
-  const handleSubmit = async (data: CreateOpportunityInput) => {
+  const handleSubmit = async (data: OpportunityInput) => {
     // This is for saving changes to draft, not publishing
     try {
       const submitData = {
@@ -94,7 +97,7 @@ export default function EditOpportunityPage() {
     }
   }
 
-  const handlePublish = async (data: CreateOpportunityInput) => {
+  const handlePublish = async (data: OpportunityInput) => {
     try {
       const submitData = {
         ...data,
@@ -124,7 +127,7 @@ export default function EditOpportunityPage() {
     }
   }
 
-  const handleSaveAsDraft = async (data: Partial<CreateOpportunityInput>) => {
+  const handleSaveAsDraft = async (data: Partial<OpportunityInput>) => {
     try {
       const draftData = {
         ...data,
@@ -161,25 +164,28 @@ export default function EditOpportunityPage() {
   }
 
   // Transform database fields to form fields
-  const initialData: Partial<CreateOpportunityInput> = {
-    title: opportunity.title,
-    propertyType: opportunity.property_type as any,
-    description: opportunity.description,
-    street: opportunity.street,
-    city: opportunity.city,
-    state: opportunity.state,
-    zipCode: opportunity.zip_code,
-    country: opportunity.country,
-    squareFootage: opportunity.square_footage,
-    yearBuilt: opportunity.year_built,
-    unitCount: opportunity.unit_count,
-    totalInvestment: opportunity.total_investment,
-    minimumInvestment: opportunity.minimum_investment,
-    targetReturn: opportunity.target_return,
-    holdPeriod: opportunity.hold_period,
-    acquisitionFee: opportunity.acquisition_fee,
-    managementFee: opportunity.management_fee,
-    dispositionFee: opportunity.disposition_fee,
+  const initialData: Partial<OpportunityInput> = {
+    opportunity_name: opportunity.opportunity_name,
+    opportunity_description: opportunity.opportunity_description,
+    property_type: opportunity.property_type as any,
+    property_address: {
+      street: opportunity.property_address?.street || '',
+      city: opportunity.property_address?.city || '',
+      state: opportunity.property_address?.state || '',
+      zip: opportunity.property_address?.zip || '',
+      country: opportunity.property_address?.country || 'US'
+    },
+    total_square_feet: opportunity.total_square_feet,
+    year_built: opportunity.year_built,
+    number_of_units: opportunity.number_of_units,
+    total_project_cost: opportunity.total_project_cost,
+    equity_requirement: opportunity.equity_requirement,
+    minimum_investment: opportunity.minimum_investment,
+    maximum_investment: opportunity.maximum_investment,
+    target_raise_amount: opportunity.target_raise_amount,
+    projected_irr: opportunity.projected_irr,
+    projected_hold_period_months: opportunity.projected_hold_period_months,
+    investment_strategy: opportunity.investment_strategy as any,
     status: opportunity.status as any
   }
 
@@ -192,7 +198,7 @@ export default function EditOpportunityPage() {
         </p>
       </div>
       
-      <OpportunityForm
+      <OpportunityFormPRD
         mode="edit"
         initialData={initialData}
         onSubmit={handleSubmit}

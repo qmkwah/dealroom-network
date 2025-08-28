@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
+// import { Slider } from '@/components/ui/slider' // Not implemented yet
 import { Badge } from '@/components/ui/badge'
 import { X, Filter, RotateCcw } from 'lucide-react'
 import { propertyTypes, investmentStrategies, propertySubtypes } from '@/lib/constants/opportunities'

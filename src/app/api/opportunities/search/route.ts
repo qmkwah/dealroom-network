@@ -16,7 +16,23 @@ export async function GET(request: NextRequest) {
     const maxIrr = searchParams.get('max_irr')
     const state = searchParams.get('state')
     const city = searchParams.get('city')
-    const status = searchParams.get('status') || 'published'
+    const statusParam = searchParams.get('status') || 'active'
+    // Map new statuses to old database statuses until migration is complete
+    let dbStatus: 'draft' | 'review' | 'active' | 'closed' | 'archived'
+    switch (statusParam) {
+      case 'fundraising':
+      case 'due_diligence':
+        dbStatus = 'active'
+        break
+      case 'funded':
+        dbStatus = 'closed'
+        break
+      case 'cancelled':
+        dbStatus = 'archived'
+        break
+      default:
+        dbStatus = statusParam as 'draft' | 'review' | 'active' | 'closed' | 'archived'
+    }
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
@@ -60,19 +76,19 @@ export async function GET(request: NextRequest) {
       `)
 
     // Apply filters
-    if (status) {
-      query = query.eq('status', status)
+    if (dbStatus) {
+      query = query.eq('status', dbStatus)
     }
 
     // Only show public listings unless authenticated user is the sponsor
     query = query.eq('public_listing', true)
 
     if (propertyType) {
-      query = query.eq('property_type', propertyType)
+      query = query.eq('property_type', propertyType as any)
     }
 
     if (investmentStrategy) {
-      query = query.eq('investment_strategy', investmentStrategy)
+      query = query.eq('investment_strategy', investmentStrategy as any)
     }
 
     if (minInvestment) {
@@ -131,11 +147,11 @@ export async function GET(request: NextRequest) {
     const countQuery = supabase
       .from('investment_opportunities')
       .select('*', { count: 'exact', head: true })
-      .eq('status', status)
+      .eq('status', dbStatus)
       .eq('public_listing', true)
 
-    if (propertyType) countQuery.eq('property_type', propertyType)
-    if (investmentStrategy) countQuery.eq('investment_strategy', investmentStrategy)
+    if (propertyType) countQuery.eq('property_type', propertyType as any)
+    if (investmentStrategy) countQuery.eq('investment_strategy', investmentStrategy as any)
     if (minInvestment) countQuery.gte('minimum_investment', parseInt(minInvestment))
     if (maxInvestment) countQuery.lte('minimum_investment', parseInt(maxInvestment))
     if (minIrr) countQuery.gte('projected_irr', parseFloat(minIrr))

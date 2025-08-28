@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { updateOpportunitySchema } from '@/lib/validations/opportunity'
 
 // Temporary type until database types are properly generated
 type SupabaseClient = {
@@ -56,9 +57,9 @@ export async function GET(
     }
 
     // Check if user has access to this opportunity
-    // Allow access if user is the sponsor or if opportunity is active/review status
+    // Allow access if user is the sponsor or if opportunity is fundraising/due_diligence status
     const isOwner = opportunity.sponsor_id === user.id
-    const isPublic = ['active', 'review'].includes(opportunity.status)
+    const isPublic = ['fundraising', 'due_diligence', 'funded'].includes(opportunity.status)
 
     if (!isOwner && !isPublic) {
       return NextResponse.json(
@@ -128,28 +129,50 @@ export async function PUT(
     // Parse and validate request body
     const body = await request.json()
     
-    // Create update data with proper field mapping
+    // Validate update data using PRD schema
+    const validation = updateOpportunitySchema.safeParse(body)
+    
+    if (!validation.success) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid input data',
+          details: validation.error.issues
+        },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
+    
+    // Create update data matching PRD schema
     const updateData: any = {}
     
-    if (body.title !== undefined) updateData.title = body.title
-    if (body.propertyType !== undefined) updateData.property_type = body.propertyType
-    if (body.description !== undefined) updateData.description = body.description
-    if (body.street !== undefined) updateData.street = body.street
-    if (body.city !== undefined) updateData.city = body.city
-    if (body.state !== undefined) updateData.state = body.state
-    if (body.zipCode !== undefined) updateData.zip_code = body.zipCode
-    if (body.country !== undefined) updateData.country = body.country
-    if (body.squareFootage !== undefined) updateData.square_footage = body.squareFootage
-    if (body.yearBuilt !== undefined) updateData.year_built = body.yearBuilt
-    if (body.unitCount !== undefined) updateData.unit_count = body.unitCount
-    if (body.totalInvestment !== undefined) updateData.total_investment = body.totalInvestment
-    if (body.minimumInvestment !== undefined) updateData.minimum_investment = body.minimumInvestment
-    if (body.targetReturn !== undefined) updateData.target_return = body.targetReturn
-    if (body.holdPeriod !== undefined) updateData.hold_period = body.holdPeriod
-    if (body.acquisitionFee !== undefined) updateData.acquisition_fee = body.acquisitionFee
-    if (body.managementFee !== undefined) updateData.management_fee = body.managementFee
-    if (body.dispositionFee !== undefined) updateData.disposition_fee = body.dispositionFee
-    if (body.status !== undefined) updateData.status = body.status
+    if (validatedData.opportunity_name !== undefined) updateData.opportunity_name = validatedData.opportunity_name
+    if (validatedData.opportunity_description !== undefined) updateData.opportunity_description = validatedData.opportunity_description
+    if (validatedData.property_type !== undefined) updateData.property_type = validatedData.property_type
+    if (validatedData.property_address !== undefined) updateData.property_address = validatedData.property_address
+    if (validatedData.property_subtype !== undefined) updateData.property_subtype = validatedData.property_subtype
+    if (validatedData.total_square_feet !== undefined) updateData.total_square_feet = validatedData.total_square_feet
+    if (validatedData.number_of_units !== undefined) updateData.number_of_units = validatedData.number_of_units
+    if (validatedData.year_built !== undefined) updateData.year_built = validatedData.year_built
+    if (validatedData.property_condition !== undefined) updateData.property_condition = validatedData.property_condition
+    if (validatedData.total_project_cost !== undefined) updateData.total_project_cost = validatedData.total_project_cost
+    if (validatedData.equity_requirement !== undefined) updateData.equity_requirement = validatedData.equity_requirement
+    if (validatedData.debt_amount !== undefined) updateData.debt_amount = validatedData.debt_amount
+    if (validatedData.debt_type !== undefined) updateData.debt_type = validatedData.debt_type
+    if (validatedData.minimum_investment !== undefined) updateData.minimum_investment = validatedData.minimum_investment
+    if (validatedData.maximum_investment !== undefined) updateData.maximum_investment = validatedData.maximum_investment
+    if (validatedData.target_raise_amount !== undefined) updateData.target_raise_amount = validatedData.target_raise_amount
+    if (validatedData.projected_irr !== undefined) updateData.projected_irr = validatedData.projected_irr
+    if (validatedData.projected_hold_period_months !== undefined) updateData.projected_hold_period_months = validatedData.projected_hold_period_months
+    if (validatedData.investment_strategy !== undefined) updateData.investment_strategy = validatedData.investment_strategy
+    if (validatedData.business_plan !== undefined) updateData.business_plan = validatedData.business_plan
+    if (validatedData.value_creation_strategy !== undefined) updateData.value_creation_strategy = validatedData.value_creation_strategy
+    if (validatedData.exit_strategy !== undefined) updateData.exit_strategy = validatedData.exit_strategy
+    if (validatedData.status !== undefined) updateData.status = validatedData.status
+    if (validatedData.public_listing !== undefined) updateData.public_listing = validatedData.public_listing
+    if (validatedData.featured_listing !== undefined) updateData.featured_listing = validatedData.featured_listing
+    if (validatedData.accredited_only !== undefined) updateData.accredited_only = validatedData.accredited_only
 
     updateData.updated_at = new Date().toISOString()
 

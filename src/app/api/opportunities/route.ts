@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createOpportunitySchema, createDraftSchema } from '@/lib/validations/opportunities'
+import { opportunitySchema, type OpportunityInput } from '@/lib/validations/opportunity'
 
 // Temporary type until database types are properly generated
 type SupabaseClient = {
@@ -119,11 +119,8 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json()
     
-    // Determine which validation schema to use based on status
-    const isDraft = body.status === 'draft'
-    const validation = isDraft 
-      ? createDraftSchema.safeParse(body)
-      : createOpportunitySchema.safeParse(body)
+    // Validate input data
+    const validation = opportunitySchema.safeParse(body)
     
     if (!validation.success) {
       return NextResponse.json(
@@ -137,52 +134,68 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data
 
-    // Create database insert data
+    // Create database insert data matching the investment_opportunities table schema
     const opportunityData: any = {
       sponsor_id: user.id,
-      title: validatedData.title,
-      status: validatedData.status
-    }
-
-    // For drafts, provide default values for required database fields
-    if (isDraft) {
-      // Required fields with default values for drafts
-      opportunityData.property_type = validatedData.propertyType || 'multifamily'
-      opportunityData.description = validatedData.description || 'Draft - description to be added'
-      opportunityData.street = validatedData.street || 'TBD'
-      opportunityData.city = validatedData.city || 'TBD'
-      opportunityData.state = validatedData.state || 'TBD'
-      opportunityData.zip_code = validatedData.zipCode || '00000'
-      opportunityData.country = validatedData.country || 'US'
-      opportunityData.square_footage = validatedData.squareFootage || 1000
-      opportunityData.year_built = validatedData.yearBuilt || 2000
-      opportunityData.unit_count = validatedData.unitCount || 1
-      opportunityData.total_investment = validatedData.totalInvestment || 100000
-      opportunityData.minimum_investment = validatedData.minimumInvestment || 10000
-      opportunityData.target_return = validatedData.targetReturn || 10
-      opportunityData.hold_period = validatedData.holdPeriod || 60
-      opportunityData.acquisition_fee = validatedData.acquisitionFee || 0
-      opportunityData.management_fee = validatedData.managementFee || 0
-      opportunityData.disposition_fee = validatedData.dispositionFee || 0
-    } else {
-      // For published opportunities, use validated data directly
-      opportunityData.property_type = validatedData.propertyType
-      opportunityData.description = validatedData.description
-      opportunityData.street = validatedData.street
-      opportunityData.city = validatedData.city
-      opportunityData.state = validatedData.state
-      opportunityData.zip_code = validatedData.zipCode
-      opportunityData.country = validatedData.country || 'US'
-      opportunityData.square_footage = validatedData.squareFootage
-      opportunityData.year_built = validatedData.yearBuilt
-      opportunityData.unit_count = validatedData.unitCount || 1
-      opportunityData.total_investment = validatedData.totalInvestment
-      opportunityData.minimum_investment = validatedData.minimumInvestment
-      opportunityData.target_return = validatedData.targetReturn
-      opportunityData.hold_period = validatedData.holdPeriod
-      opportunityData.acquisition_fee = validatedData.acquisitionFee || 0
-      opportunityData.management_fee = validatedData.managementFee || 0
-      opportunityData.disposition_fee = validatedData.dispositionFee || 0
+      opportunity_name: validatedData.opportunity_name,
+      opportunity_description: validatedData.opportunity_description,
+      status: validatedData.status,
+      
+      // Property address as JSONB
+      property_address: validatedData.property_address,
+      property_type: validatedData.property_type,
+      property_subtype: validatedData.property_subtype,
+      total_square_feet: validatedData.total_square_feet,
+      number_of_units: validatedData.number_of_units,
+      year_built: validatedData.year_built,
+      property_condition: validatedData.property_condition,
+      
+      // Financial structure
+      total_project_cost: validatedData.total_project_cost,
+      equity_requirement: validatedData.equity_requirement,
+      debt_amount: validatedData.debt_amount,
+      debt_type: validatedData.debt_type,
+      loan_to_cost_ratio: validatedData.loan_to_cost_ratio,
+      loan_to_value_ratio: validatedData.loan_to_value_ratio,
+      
+      // Investment terms
+      minimum_investment: validatedData.minimum_investment,
+      maximum_investment: validatedData.maximum_investment,
+      target_raise_amount: validatedData.target_raise_amount,
+      current_commitments: 0,
+      fundraising_progress: 0,
+      
+      // Returns and timeline
+      projected_irr: validatedData.projected_irr,
+      projected_total_return_multiple: validatedData.projected_total_return_multiple,
+      projected_hold_period_months: validatedData.projected_hold_period_months,
+      cash_on_cash_return: validatedData.cash_on_cash_return,
+      preferred_return_rate: validatedData.preferred_return_rate,
+      
+      // Investment strategy
+      investment_strategy: validatedData.investment_strategy,
+      business_plan: validatedData.business_plan,
+      value_creation_strategy: validatedData.value_creation_strategy,
+      exit_strategy: validatedData.exit_strategy,
+      
+      // Timeline - convert date strings to Date objects
+      fundraising_deadline: validatedData.fundraising_deadline ? new Date(validatedData.fundraising_deadline) : null,
+      expected_closing_date: validatedData.expected_closing_date ? new Date(validatedData.expected_closing_date) : null,
+      construction_start_date: validatedData.construction_start_date ? new Date(validatedData.construction_start_date) : null,
+      stabilization_date: validatedData.stabilization_date ? new Date(validatedData.stabilization_date) : null,
+      projected_exit_date: validatedData.projected_exit_date ? new Date(validatedData.projected_exit_date) : null,
+      
+      // Visibility and access
+      public_listing: validatedData.public_listing,
+      featured_listing: validatedData.featured_listing,
+      accredited_only: validatedData.accredited_only,
+      geographic_restrictions: validatedData.geographic_restrictions,
+      
+      // Performance tracking defaults
+      views_count: 0,
+      interest_count: 0,
+      inquiry_count: 0,
+      meeting_requests_count: 0
     }
 
     // Insert opportunity into database
@@ -203,6 +216,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         message: 'Opportunity created successfully',
+        id: opportunity.id,
         opportunity 
       },
       { status: 201 }

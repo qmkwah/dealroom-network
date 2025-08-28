@@ -1,7 +1,7 @@
 'use client'
 
-import { OpportunityForm } from '@/components/opportunities/forms/OpportunityForm'
-import { createOpportunitySchema, type CreateOpportunityInput } from '@/lib/validations/opportunities'
+import { OpportunityFormPRD } from '@/components/opportunities/forms/OpportunityFormPRD'
+import { opportunitySchema, type OpportunityInput } from '@/lib/validations/opportunity'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -10,7 +10,7 @@ export default function CreateOpportunityPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const handleSubmit = async (data: CreateOpportunityInput) => {
+  const handleSubmit = async (data: OpportunityInput) => {
     const publishData = {
       ...data,
       status: 'active'
@@ -35,10 +35,10 @@ export default function CreateOpportunityPage() {
     return { id: result.opportunity.id }
   }
 
-  const handleSaveAsDraft = async (data: Partial<CreateOpportunityInput>) => {
-    // Validate draft has at least title
-    if (!data.title || data.title.trim().length === 0) {
-      toast.error('Draft must have at least a title')
+  const handleSaveAsDraft = async (data: Partial<OpportunityInput>) => {
+    // Validate draft has at least opportunity name
+    if (!data.opportunity_name || data.opportunity_name.trim().length === 0) {
+      toast.error('Draft must have at least an opportunity name')
       return
     }
 
@@ -82,7 +82,7 @@ export default function CreateOpportunityPage() {
         </p>
       </div>
       
-      <OpportunityForm
+      <OpportunityFormPRD
         mode="create"
         onSubmit={handleSubmit}
         onSaveAsDraft={handleSaveAsDraft}
