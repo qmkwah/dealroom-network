@@ -66,7 +66,9 @@ export default function RegisterForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
+          <Label htmlFor="firstName" className="text-sm font-medium">
+            First Name <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="firstName"
             placeholder="First name"
@@ -80,7 +82,9 @@ export default function RegisterForm() {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
+          <Label htmlFor="lastName" className="text-sm font-medium">
+            Last Name <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="lastName"
             placeholder="Last name"
@@ -95,7 +99,9 @@ export default function RegisterForm() {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-sm font-medium">
+          Email <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="email"
           type="email"
@@ -110,7 +116,9 @@ export default function RegisterForm() {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="userRole">I am a</Label>
+        <Label htmlFor="userRole" className="text-sm font-medium">
+          I am a <span className="text-red-500">*</span>
+        </Label>
         <Select 
           onValueChange={(value) => setValue('userRole', value as 'deal_sponsor' | 'capital_partner' | 'service_provider')}
           disabled={isLoading}
@@ -130,7 +138,9 @@ export default function RegisterForm() {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password" className="text-sm font-medium">
+          Password <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="password"
           type="password"
@@ -145,7 +155,9 @@ export default function RegisterForm() {
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword" className="text-sm font-medium">
+          Confirm Password <span className="text-red-500">*</span>
+        </Label>
         <Input
           id="confirmPassword"
           type="password"

@@ -20,7 +20,10 @@
       "Read(C:\\C:\\Users\\SONY\\Desktop\\dealroom-network/**)",
       "Bash(cat:*)",
       "Bash(pnpm lint:*)",
-      "Bash(pnpm type-check:*)"
+      "Bash(pnpm type-check:*)",
+      "mcp__supabase__list_tables",
+      "Bash(pnpm db:types:*)",
+      "Bash(pnpm install:*)"
     ]
   }
 }

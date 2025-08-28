@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createOpportunitySchema } from '@/lib/validations/opportunities'
+import { createOpportunitySchema, createDraftSchema } from '@/lib/validations/opportunities'
 
 // Temporary type until database types are properly generated
 type SupabaseClient = {
@@ -36,13 +36,10 @@ export async function GET(request: NextRequest) {
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    // Build query with filters
+    // Build query with filters - simplified select to avoid auth.users join issues
     let query = (supabase as SupabaseClient)
       .from('investment_opportunities')
-      .select(`
-        *,
-        sponsor:auth.users!sponsor_id(email, user_metadata, raw_user_meta_data)
-      `)
+      .select('*')
 
     // Apply status filter - temporarily disabled due to type issues
     // if (status !== 'all' && validStatuses.includes(status as any)) {
@@ -121,7 +118,12 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json()
-    const validation = createOpportunitySchema.safeParse(body)
+    
+    // Determine which validation schema to use based on status
+    const isDraft = body.status === 'draft'
+    const validation = isDraft 
+      ? createDraftSchema.safeParse(body)
+      : createOpportunitySchema.safeParse(body)
     
     if (!validation.success) {
       return NextResponse.json(
@@ -136,27 +138,51 @@ export async function POST(request: NextRequest) {
     const validatedData = validation.data
 
     // Create database insert data
-    const opportunityData = {
+    const opportunityData: any = {
       sponsor_id: user.id,
       title: validatedData.title,
-      property_type: validatedData.propertyType,
-      description: validatedData.description,
-      street: validatedData.street,
-      city: validatedData.city,
-      state: validatedData.state,
-      zip_code: validatedData.zipCode,
-      country: validatedData.country,
-      square_footage: validatedData.squareFootage,
-      year_built: validatedData.yearBuilt,
-      unit_count: validatedData.unitCount,
-      total_investment: validatedData.totalInvestment,
-      minimum_investment: validatedData.minimumInvestment,
-      target_return: validatedData.targetReturn,
-      hold_period: validatedData.holdPeriod,
-      acquisition_fee: validatedData.acquisitionFee,
-      management_fee: validatedData.managementFee,
-      disposition_fee: validatedData.dispositionFee,
       status: validatedData.status
+    }
+
+    // For drafts, provide default values for required database fields
+    if (isDraft) {
+      // Required fields with default values for drafts
+      opportunityData.property_type = validatedData.propertyType || 'multifamily'
+      opportunityData.description = validatedData.description || 'Draft - description to be added'
+      opportunityData.street = validatedData.street || 'TBD'
+      opportunityData.city = validatedData.city || 'TBD'
+      opportunityData.state = validatedData.state || 'TBD'
+      opportunityData.zip_code = validatedData.zipCode || '00000'
+      opportunityData.country = validatedData.country || 'US'
+      opportunityData.square_footage = validatedData.squareFootage || 1000
+      opportunityData.year_built = validatedData.yearBuilt || 2000
+      opportunityData.unit_count = validatedData.unitCount || 1
+      opportunityData.total_investment = validatedData.totalInvestment || 100000
+      opportunityData.minimum_investment = validatedData.minimumInvestment || 10000
+      opportunityData.target_return = validatedData.targetReturn || 10
+      opportunityData.hold_period = validatedData.holdPeriod || 60
+      opportunityData.acquisition_fee = validatedData.acquisitionFee || 0
+      opportunityData.management_fee = validatedData.managementFee || 0
+      opportunityData.disposition_fee = validatedData.dispositionFee || 0
+    } else {
+      // For published opportunities, use validated data directly
+      opportunityData.property_type = validatedData.propertyType
+      opportunityData.description = validatedData.description
+      opportunityData.street = validatedData.street
+      opportunityData.city = validatedData.city
+      opportunityData.state = validatedData.state
+      opportunityData.zip_code = validatedData.zipCode
+      opportunityData.country = validatedData.country || 'US'
+      opportunityData.square_footage = validatedData.squareFootage
+      opportunityData.year_built = validatedData.yearBuilt
+      opportunityData.unit_count = validatedData.unitCount || 1
+      opportunityData.total_investment = validatedData.totalInvestment
+      opportunityData.minimum_investment = validatedData.minimumInvestment
+      opportunityData.target_return = validatedData.targetReturn
+      opportunityData.hold_period = validatedData.holdPeriod
+      opportunityData.acquisition_fee = validatedData.acquisitionFee || 0
+      opportunityData.management_fee = validatedData.managementFee || 0
+      opportunityData.disposition_fee = validatedData.dispositionFee || 0
     }
 
     // Insert opportunity into database

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { createOpportunitySchema, type CreateOpportunityInput } from '@/lib/validations/opportunities'
+import { createOpportunitySchema, createDraftSchema, type CreateOpportunityInput } from '@/lib/validations/opportunities'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -20,20 +20,24 @@ interface OpportunityFormProps {
   initialData?: Partial<CreateOpportunityInput>
   onSubmit: (data: CreateOpportunityInput) => Promise<{ id: string }>
   onSaveAsDraft?: (data: Partial<CreateOpportunityInput>) => Promise<void>
+  onPublish?: (data: CreateOpportunityInput) => Promise<{ id: string }>
 }
 
 export function OpportunityForm({
   mode = 'create',
   initialData,
   onSubmit,
-  onSaveAsDraft
+  onSaveAsDraft,
+  onPublish
 }: OpportunityFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const form = useForm<CreateOpportunityInput>({
     resolver: zodResolver(createOpportunitySchema),
+    mode: 'onChange', // Enable real-time validation
     defaultValues: {
       title: '',
       propertyType: 'multifamily',
@@ -42,14 +46,14 @@ export function OpportunityForm({
       state: '',
       zipCode: '',
       country: 'US',
-      squareFootage: 1000,
-      yearBuilt: new Date().getFullYear(),
-      unitCount: 1,
-      description: 'This is a placeholder description for validation.',
-      totalInvestment: 100000,
-      minimumInvestment: 10000,
-      targetReturn: 10,
-      holdPeriod: 60,
+      squareFootage: undefined,
+      yearBuilt: undefined,
+      unitCount: undefined,
+      description: '',
+      totalInvestment: undefined,
+      minimumInvestment: undefined,
+      targetReturn: undefined,
+      holdPeriod: undefined,
       acquisitionFee: 0,
       managementFee: 0,
       dispositionFee: 0,
@@ -84,6 +88,13 @@ export function OpportunityForm({
   }, [mode, initialData, form])
 
   const handleSubmit = async (data: CreateOpportunityInput) => {
+    // Trigger validation to show all errors
+    const isValid = await form.trigger()
+    if (!isValid) {
+      toast.error('Please fix the validation errors before publishing')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -98,7 +109,7 @@ export function OpportunityForm({
       toast.success(`Opportunity ${mode === 'create' ? 'created' : 'updated'} successfully!`)
       
       // Redirect to opportunity page
-      router.push(`/opportunities/${result.id}`)
+      router.push(`/dashboard/opportunities/${result.id}`)
       
     } catch (error: unknown) {
       console.error('Submission error:', error)
@@ -113,14 +124,59 @@ export function OpportunityForm({
   const handleSaveAsDraft = async () => {
     if (!onSaveAsDraft) return
 
-    setIsLoading(true)
+    const currentData = form.getValues()
+    
+    // Validate draft data using draft schema
+    const draftValidation = createDraftSchema.safeParse(currentData)
+    if (!draftValidation.success) {
+      // Trigger validation to show errors
+      await form.trigger(['title', 'propertyType'])
+      toast.error('Please fill in the required fields (Title and Property Type) to save draft')
+      return
+    }
+
+    setIsDraftSaving(true)
+    setError(null)
+    
     try {
-      const currentData = form.getValues()
-      await onSaveAsDraft(currentData)
+      // Add status to ensure it's a draft
+      await onSaveAsDraft({...currentData, status: 'draft'})
       toast.success('Draft saved successfully!')
     } catch (error) {
       console.error('Failed to save draft:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save draft'
+      setError(errorMessage)
       toast.error('Failed to save draft')
+    } finally {
+      setIsDraftSaving(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!onPublish) return
+
+    // Trigger form validation for all fields
+    const isValid = await form.trigger()
+    if (!isValid) {
+      toast.error('Please fix all validation errors before publishing')
+      setError('Please fix all validation errors before publishing')
+      return
+    }
+
+    const formData = form.getValues()
+    
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const result = await onPublish(formData as CreateOpportunityInput)
+      toast.success('Opportunity published successfully!')
+      router.push(`/dashboard/opportunities/${result.id}`)
+    } catch (error) {
+      console.error('Failed to publish:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish opportunity'
+      setError(errorMessage)
+      toast.error('Failed to publish opportunity')
     } finally {
       setIsLoading(false)
     }
@@ -142,7 +198,7 @@ export function OpportunityForm({
         </h1>
         <p className="text-muted-foreground">
           {mode === 'create' 
-            ? 'Share your real estate investment opportunity with qualified investors'
+            ? 'Share your real estate investment opportunity with qualified investors. Fields marked with * are required for publishing.'
             : 'Update your investment opportunity details'
           }
         </p>
@@ -170,10 +226,13 @@ export function OpportunityForm({
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Property Title</FormLabel>
+                    <FormLabel className="text-sm font-medium">
+                      Property Title <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., Premium Multifamily Property in Manhattan" {...field} />
                     </FormControl>
+                    <FormDescription>Required for all opportunities</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -184,7 +243,9 @@ export function OpportunityForm({
                 name="propertyType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Property Type</FormLabel>
+                    <FormLabel className="text-sm font-medium">
+                      Property Type <span className="text-red-500">*</span>
+                    </FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -212,7 +273,9 @@ export function OpportunityForm({
                   name="street"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Street Address</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Street Address <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="123 Main Street" {...field} />
                       </FormControl>
@@ -226,7 +289,9 @@ export function OpportunityForm({
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        City <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="New York" {...field} />
                       </FormControl>
@@ -240,7 +305,9 @@ export function OpportunityForm({
                   name="state"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>State</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        State <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="NY" {...field} />
                       </FormControl>
@@ -254,7 +321,9 @@ export function OpportunityForm({
                   name="zipCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ZIP Code</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        ZIP Code <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="10001" {...field} />
                       </FormControl>
@@ -275,8 +344,20 @@ export function OpportunityForm({
                         <Input 
                           type="number" 
                           placeholder="10000" 
+                          min="100"
+                          max="50000000"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -294,8 +375,20 @@ export function OpportunityForm({
                         <Input 
                           type="number" 
                           placeholder="2020" 
+                          min="1900"
+                          max={new Date().getFullYear().toString()}
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue >= 1900 && numValue <= new Date().getFullYear()) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -313,8 +406,20 @@ export function OpportunityForm({
                         <Input 
                           type="number" 
                           placeholder="1" 
+                          min="1"
+                          max="10000"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue >= 1) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -328,7 +433,9 @@ export function OpportunityForm({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Property Description</FormLabel>
+                    <FormLabel className="text-sm font-medium">
+                      Property Description <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Describe the property, its location, amenities, and investment potential..." 
@@ -362,13 +469,27 @@ export function OpportunityForm({
                   name="totalInvestment"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Investment</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Total Investment <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           placeholder="1000000" 
+                          min="100000"
+                          max="1000000000"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseFloat(value)
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormDescription>Minimum $100,000</FormDescription>
@@ -382,13 +503,27 @@ export function OpportunityForm({
                   name="minimumInvestment"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Minimum Investment</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Minimum Investment <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           placeholder="50000" 
+                          min="10000"
+                          max="100000000"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseFloat(value)
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormDescription>Minimum $10,000</FormDescription>
@@ -402,17 +537,31 @@ export function OpportunityForm({
                   name="targetReturn"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Target Return (%)</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Target Return (%) <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           step="0.1"
                           placeholder="12.5" 
+                          min="0.1"
+                          max="100"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseFloat(value)
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
-                      <FormDescription>Annual return percentage (1-50%)</FormDescription>
+                      <FormDescription>Annual return percentage (0.1-100%)</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -423,16 +572,30 @@ export function OpportunityForm({
                   name="holdPeriod"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hold Period (Months)</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Hold Period (Months) <span className="text-red-500">*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           placeholder="60" 
+                          min="1"
+                          max="360"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '') {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseInt(value)
+                              if (!isNaN(numValue) && numValue >= 1) {
+                                field.onChange(numValue)
+                              }
+                            }
+                          }}
                         />
                       </FormControl>
-                      <FormDescription>12-240 months</FormDescription>
+                      <FormDescription>1-360 months (1-30 years)</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -444,27 +607,49 @@ export function OpportunityForm({
           {/* Action Buttons */}
           <div className="flex flex-col-reverse sm:flex-row justify-between gap-4">
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={handleCancel}>
+              <Button type="button" variant="outline" onClick={handleCancel} className="border border-input">
                 Cancel
               </Button>
-              {mode === 'create' && onSaveAsDraft && (
+              {onSaveAsDraft && (
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={handleSaveAsDraft}
-                  disabled={isLoading}
+                  disabled={isDraftSaving || isLoading}
+                  className="border border-input"
                 >
-                  Save as Draft
+                  {isDraftSaving 
+                    ? 'Saving...' 
+                    : (mode === 'create' ? 'Save as Draft' : 'Save Draft')
+                  }
                 </Button>
               )}
             </div>
             
-            <Button type="submit" disabled={isLoading}>
-              {isLoading 
-                ? (mode === 'create' ? 'Creating...' : 'Updating...') 
-                : (mode === 'create' ? 'Create Opportunity' : 'Update Opportunity')
-              }
-            </Button>
+            <div className="flex gap-2">
+              {mode === 'edit' && onPublish && (
+                <Button 
+                  type="button" 
+                  onClick={handlePublish}
+                  disabled={isLoading || isDraftSaving}
+                  className="border border-input"
+                >
+                  {isLoading ? 'Publishing...' : 'Publish Opportunity'}
+                </Button>
+              )}
+              
+              {mode === 'create' && (
+                <Button type="submit" disabled={isLoading || isDraftSaving} className="border border-input">
+                  {isLoading ? 'Publishing...' : 'Publish Opportunity'}
+                </Button>
+              )}
+              
+              {mode === 'edit' && !onPublish && (
+                <Button type="submit" disabled={isLoading} className="border border-input">
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </Form>

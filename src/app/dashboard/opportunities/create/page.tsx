@@ -11,12 +11,17 @@ export default function CreateOpportunityPage() {
   const supabase = createClient()
 
   const handleSubmit = async (data: CreateOpportunityInput) => {
+    const publishData = {
+      ...data,
+      status: 'active'
+    }
+
     const response = await fetch('/api/opportunities', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(publishData),
     })
 
     if (!response.ok) {
@@ -25,15 +30,47 @@ export default function CreateOpportunityPage() {
     }
 
     const result = await response.json()
-    toast.success('Opportunity created successfully!')
-    router.push(`/opportunities/${result.opportunity.id}`)
+    toast.success('Opportunity published successfully!')
+    router.push(`/dashboard/opportunities/${result.opportunity.id}`)
     return { id: result.opportunity.id }
   }
 
   const handleSaveAsDraft = async (data: Partial<CreateOpportunityInput>) => {
-    // Save to localStorage for now
-    localStorage.setItem('opportunity-draft', JSON.stringify(data))
-    toast.success('Draft saved!')
+    // Validate draft has at least title
+    if (!data.title || data.title.trim().length === 0) {
+      toast.error('Draft must have at least a title')
+      return
+    }
+
+    try {
+      const draftData = {
+        ...data,
+        status: 'draft'
+      }
+
+      const response = await fetch('/api/opportunities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(draftData),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to save draft')
+      }
+
+      const result = await response.json()
+      toast.success('Draft saved successfully!')
+      
+      // Clear localStorage draft and redirect to edit page
+      localStorage.removeItem('opportunity-draft')
+      router.push(`/dashboard/opportunities/${result.opportunity.id}`)
+    } catch (error: any) {
+      console.error('Draft save error:', error)
+      toast.error(error.message || 'Failed to save draft')
+    }
   }
 
   return (

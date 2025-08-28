@@ -37,23 +37,48 @@ export const createOpportunitySchema = z.object({
   state: z.string().min(2, 'State is required').max(3, 'State must be 2-3 characters'),
   zipCode: z.string().min(5, 'ZIP code must be at least 5 characters'),
   country: z.string(),
-  squareFootage: z.number().min(1, 'Square footage must be greater than 0').max(50000000, 'Square footage too large'),
-  yearBuilt: z.number().min(1800, 'Year built must be after 1800').max(new Date().getFullYear() + 5, 'Year built cannot be in the future'),
-  unitCount: z.number().min(1, 'Unit count must be at least 1'),
+  squareFootage: z.number().min(100, 'Square footage must be at least 100 sq ft').max(50000000, 'Square footage too large'),
+  yearBuilt: z.number().min(1900, 'Year built must be after 1900').max(new Date().getFullYear(), 'Year built cannot be in the future'),
+  unitCount: z.number().min(1, 'Unit count must be at least 1').max(10000, 'Unit count too large'),
   totalInvestment: z.number().min(100000, 'Total investment must be at least $100,000').max(1000000000, 'Total investment too large'),
-  minimumInvestment: z.number().min(10000, 'Minimum investment must be at least $10,000'),
-  targetReturn: z.number().min(1, 'Target return must be at least 1%').max(50, 'Target return cannot exceed 50%'),
-  holdPeriod: z.number().min(12, 'Hold period must be at least 12 months').max(240, 'Hold period cannot exceed 20 years'),
+  minimumInvestment: z.number().min(10000, 'Minimum investment must be at least $10,000').max(100000000, 'Minimum investment too large'),
+  targetReturn: z.number().min(0.1, 'Target return must be at least 0.1%').max(100, 'Target return cannot exceed 100%'),
+  holdPeriod: z.number().min(1, 'Hold period must be at least 1 month').max(360, 'Hold period cannot exceed 30 years'),
   acquisitionFee: z.number().min(0, 'Acquisition fee cannot be negative').max(10, 'Acquisition fee cannot exceed 10%'),
   managementFee: z.number().min(0, 'Management fee cannot be negative').max(5, 'Management fee cannot exceed 5%'),
   dispositionFee: z.number().min(0, 'Disposition fee cannot be negative').max(10, 'Disposition fee cannot exceed 10%'),
-  status: z.enum(['draft', 'review'])
+  status: z.enum(['draft', 'review', 'active'])
 }).refine(data => data.minimumInvestment <= data.totalInvestment, {
   message: 'Minimum investment cannot exceed total investment',
   path: ['minimumInvestment']
 })
 
 export type CreateOpportunityInput = z.infer<typeof createOpportunitySchema>
+
+// Draft schema - requires essential fields for meaningful draft
+export const createDraftSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
+  propertyType: z.enum(propertyTypes, 'Property type is required'),
+  description: z.string().min(10, 'Description must be at least 10 characters').optional(),
+  street: z.string().min(1, 'Street address is required').optional(),
+  city: z.string().min(1, 'City is required').optional(), 
+  state: z.string().min(2, 'State is required').optional(),
+  zipCode: z.string().min(5, 'ZIP code must be at least 5 characters').optional(),
+  country: z.string().optional(),
+  squareFootage: z.number().min(100, 'Square footage must be at least 100 sq ft').optional(),
+  yearBuilt: z.number().min(1900, 'Year built must be after 1900').max(new Date().getFullYear(), 'Year built cannot be in the future').optional(),
+  unitCount: z.number().min(1, 'Unit count must be at least 1').optional(),
+  totalInvestment: z.number().min(100000, 'Total investment must be at least $100,000').optional(),
+  minimumInvestment: z.number().min(10000, 'Minimum investment must be at least $10,000').optional(),
+  targetReturn: z.number().min(0.1, 'Target return must be at least 0.1%').max(100, 'Target return cannot exceed 100%').optional(),
+  holdPeriod: z.number().min(1, 'Hold period must be at least 1 month').max(360, 'Hold period cannot exceed 30 years').optional(),
+  acquisitionFee: z.number().min(0, 'Acquisition fee cannot be negative').max(10, 'Acquisition fee cannot exceed 10%').optional(),
+  managementFee: z.number().min(0, 'Management fee cannot be negative').max(5, 'Management fee cannot exceed 5%').optional(),
+  dispositionFee: z.number().min(0, 'Disposition fee cannot be negative').max(10, 'Disposition fee cannot exceed 10%').optional(),
+  status: z.literal('draft')
+})
+
+export type CreateDraftInput = z.infer<typeof createDraftSchema>
 
 // Update schema allows partial updates
 export const updateOpportunitySchema = createOpportunitySchema.partial()

@@ -60,30 +60,41 @@ export async function middleware(request: NextRequest) {
 
     // Route Protection Logic
     
-    // 1. Protect Dashboard Routes
-    if (pathname.startsWith('/dashboard')) {
-      if (!isAuthenticated) {
-        const redirectUrl = new URL('/auth/login', request.url)
-        redirectUrl.searchParams.set('redirectTo', pathname)
-        return NextResponse.redirect(redirectUrl)
-      }
-      // User is authenticated, allow access
-      return response
-    }
-
-    // 2. Handle Authentication Pages  
+    // 1. Handle Authentication Pages First
     if (pathname.startsWith('/auth')) {
       // Special case: Always allow access to verify-email and callback
       if (pathname.includes('/verify-email') || pathname.includes('/callback')) {
         return response
       }
       
-      // Redirect authenticated users away from login/register pages
-      if (isAuthenticated && (pathname.includes('/login') || pathname.includes('/register'))) {
+      // Redirect authenticated users away from login/register/forgot-password pages to dashboard
+      if (isAuthenticated && (pathname === '/auth/login' || pathname === '/auth/register' || pathname === '/auth/forgot-password')) {
+        console.log(`[Middleware] Redirecting authenticated user from ${pathname} to /dashboard`)
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
       
       // Allow unauthenticated users to access auth pages
+      return response
+    }
+
+    // 2. Protect Dashboard Routes
+    // Main dashboard route + all dashboard-related routes
+    const protectedRoutes = [
+      '/dashboard',
+      '/profile'
+    ]
+    
+    const isProtectedRoute = protectedRoutes.some(route => 
+      pathname === route || pathname.startsWith(route + '/')
+    )
+    
+    if (isProtectedRoute) {
+      if (!isAuthenticated) {
+        const redirectUrl = new URL('/auth/login', request.url)
+        redirectUrl.searchParams.set('redirectTo', pathname)
+        return NextResponse.redirect(redirectUrl)
+      }
+      // User is authenticated, allow access
       return response
     }
 

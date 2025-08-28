@@ -123,3 +123,92 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Fix dropdown/select overlay issues */
+  [data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+  }
+  
+  [role="listbox"] {
+    background: hsl(var(--popover)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: calc(var(--radius) - 2px) !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+    z-index: 9999 !important;
+    backdrop-filter: blur(8px);
+  }
+  
+  /* Select content styling */
+  [data-radix-select-content] {
+    background: hsl(var(--popover)) !important;
+    z-index: 9999 !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    backdrop-filter: blur(8px);
+  }
+  
+  /* Ensure select viewport has proper background */
+  [data-radix-select-viewport] {
+    background: hsl(var(--popover)) !important;
+    padding: 4px !important;
+  }
+  
+  /* Select items */
+  [data-radix-select-item] {
+    background: hsl(var(--popover)) !important;
+  }
+  
+  [data-radix-select-item]:hover,
+  [data-radix-select-item][data-highlighted] {
+    background: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+  }
+  
+  /* Property type select specific styling - full opacity */
+  [data-radix-select-content] {
+    background: hsl(var(--popover)) !important;
+    backdrop-filter: none !important;
+    border: 2px solid hsl(var(--border)) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  }
+  
+  .dark [data-radix-select-content] {
+    background: hsl(var(--popover)) !important;
+    backdrop-filter: none !important;
+    border: 2px solid hsl(var(--border)) !important;
+  }
+  
+  /* Select trigger styling to match inputs */
+  [data-radix-select-trigger] {
+    border: 1px solid hsl(var(--border)) !important;
+  }
+  
+  [data-radix-select-trigger]:focus {
+    border-color: hsl(var(--ring)) !important;
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2) !important;
+  }
+  
+  /* Form validation error styling */
+  [aria-invalid="true"] input,
+  [aria-invalid="true"] [data-radix-select-trigger],
+  [aria-invalid="true"] textarea {
+    border-color: hsl(0 84.2% 60.2%) !important;
+    box-shadow: 0 0 0 1px hsl(0 84.2% 60.2% / 0.2) !important;
+  }
+  
+  [aria-invalid="true"] input:focus,
+  [aria-invalid="true"] [data-radix-select-trigger]:focus,
+  [aria-invalid="true"] textarea:focus {
+    border-color: hsl(0 84.2% 60.2%) !important;
+    box-shadow: 0 0 0 2px hsl(0 84.2% 60.2% / 0.2) !important;
+  }
+  
+  /* Form error message styling */
+  [data-slot="form-message"] {
+    color: hsl(0 84.2% 60.2%) !important;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+}

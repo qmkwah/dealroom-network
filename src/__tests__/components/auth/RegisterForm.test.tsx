@@ -262,7 +262,7 @@ describe('RegisterForm', () => {
 
     render(<RegisterForm />)
 
-    const roleSelect = screen.getByText(/select your role/i)
+    const roleSelect = screen.getByRole('combobox')
     await user.click(roleSelect)
 
     expect(screen.getByText(/deal sponsor/i)).toBeInTheDocument()
