@@ -90,10 +90,10 @@ jest.mock('next/headers', () => ({
   ),
 }))
 
-// Mock Supabase environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://mock.supabase.co'
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'mock-anon-key'
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'mock-service-role-key'
+// Use real Supabase environment variables for database tests
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://uobqgpyyagmkiqpqplfa.supabase.co'
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvYnFncHl5YWdta2lxcHFwbGZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMjMwNzUsImV4cCI6MjA3MTg5OTA3NX0.kMnuEKlorvq5WZR93F6i_mqhJIjMcg-eXzgNLeyv_Jc'
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvYnFncHl5YWdta2lxcHFwbGZhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjMyMzA3NSwiZXhwIjoyMDcxODk5MDc1fQ.z4hcKrxrfJu7j4wCB0qtzURHM9z29vtWBvPg5wECcdk'
 
 // Mock window.location for redirect tests (JSDOM compatible)
 // Don't try to override location in setup - let JSDOM handle it
