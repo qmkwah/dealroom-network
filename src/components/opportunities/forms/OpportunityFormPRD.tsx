@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { AlertCircle, Save, Eye, Send, Calendar, DollarSign, Building2, MapPin } from 'lucide-react'
 import { propertyTypes, investmentStrategies, exitStrategies, debtTypes, propertyConditions } from '@/lib/constants/opportunities'
+import DocumentUpload from './DocumentUpload'
 
 interface OpportunityFormProps {
   mode?: 'create' | 'edit'
@@ -39,6 +40,8 @@ export function OpportunityFormPRD({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
+  const [documents, setDocuments] = useState<any[]>([])
+  const [opportunityId, setOpportunityId] = useState<string | null>(null)
   const router = useRouter()
 
   const form = useForm<OpportunityInput>({
@@ -107,8 +110,26 @@ export function OpportunityFormPRD({
   useEffect(() => {
     if (mode === 'edit' && initialData) {
       form.reset(initialData)
+      // Initialize documents and opportunity ID for edit mode
+      if ((initialData as any).property_documents) {
+        setDocuments((initialData as any).property_documents)
+      }
+      if ((initialData as any).id) {
+        setOpportunityId((initialData as any).id)
+      }
     }
   }, [mode, initialData, form])
+
+  // Document management handlers
+  const handleDocumentUploaded = (document: any) => {
+    setDocuments(prev => [...prev, document])
+    toast.success('Document uploaded successfully!')
+  }
+
+  const handleDocumentDeleted = (documentId: string) => {
+    setDocuments(prev => prev.filter(doc => doc.id !== documentId))
+    toast.success('Document deleted successfully!')
+  }
 
   const handleSubmit = async (data: OpportunityInput) => {
     // Trigger validation to show all errors
@@ -123,6 +144,12 @@ export function OpportunityFormPRD({
     
     try {
       const result = await onSubmit(data)
+      
+      // Set opportunity ID for document uploads if in create mode
+      if (mode === 'create' && result.id) {
+        setOpportunityId(result.id)
+      }
+      
       toast.success(mode === 'create' ? 'Opportunity created successfully!' : 'Opportunity updated successfully!')
       
       // Clear draft on successful submission
@@ -553,6 +580,20 @@ export function OpportunityFormPRD({
               />
             </CardContent>
           </Card>
+
+          {/* Documents Section */}
+          {opportunityId && (
+            <>
+              <div className="border-t my-6"></div>
+              <DocumentUpload
+                opportunityId={opportunityId}
+                documents={documents}
+                onDocumentUploaded={handleDocumentUploaded}
+                onDocumentDeleted={handleDocumentDeleted}
+                disabled={isSubmitting}
+              />
+            </>
+          )}
 
           <div className="border-t my-6"></div>
 

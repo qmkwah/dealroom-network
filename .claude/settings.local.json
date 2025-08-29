@@ -28,7 +28,9 @@
       "Bash(pnpm db:push:*)",
       "Bash(pnpm supabase:*)",
       "Bash(del \"C:\\Users\\SONY\\Desktop\\dealroom-network\\src\\components\\opportunities\\forms\\OpportunityForm.tsx\")",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx jest:*)"
     ]
   }
 }

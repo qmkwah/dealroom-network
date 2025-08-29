@@ -86,22 +86,38 @@ export async function PUT(
   try {
     const supabase = await createClient()
     
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
     const { id } = await params
 
     if (!id) {
       return NextResponse.json(
         { error: 'Opportunity ID is required' },
         { status: 400 }
+      )
+    }
+
+    // Parse and validate request body first
+    const body = await request.json()
+    
+    // Validate update data using PRD schema
+    const validation = updateOpportunitySchema.safeParse(body)
+    
+    if (!validation.success) {
+      return NextResponse.json(
+        { 
+          error: 'Validation failed',
+          details: validation.error.issues
+        },
+        { status: 400 }
+      )
+    }
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
@@ -121,24 +137,8 @@ export async function PUT(
 
     if (existingOpportunity.sponsor_id !== user.id) {
       return NextResponse.json(
-        { error: 'Access denied' },
+        { error: 'Unauthorized: You can only update your own opportunities' },
         { status: 403 }
-      )
-    }
-
-    // Parse and validate request body
-    const body = await request.json()
-    
-    // Validate update data using PRD schema
-    const validation = updateOpportunitySchema.safeParse(body)
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid input data',
-          details: validation.error.issues
-        },
-        { status: 400 }
       )
     }
 
@@ -193,8 +193,8 @@ export async function PUT(
     }
 
     return NextResponse.json({
-      message: 'Opportunity updated successfully',
-      opportunity
+      success: true,
+      data: opportunity
     })
 
   } catch (error) {
