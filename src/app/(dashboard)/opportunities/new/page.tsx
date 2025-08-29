@@ -14,6 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { OpportunityPreview } from '@/components/opportunities/OpportunityPreview'
 import { 
   CheckCircleIcon, 
   AlertCircleIcon, 
@@ -22,7 +24,8 @@ import {
   BuildingIcon,
   DollarSignIcon,
   CalendarIcon,
-  EyeIcon
+  EyeIcon,
+  PlayIcon
 } from 'lucide-react'
 
 const steps = [
@@ -38,6 +41,7 @@ export default function NewOpportunityPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
   const router = useRouter()
 
   const {
@@ -60,6 +64,9 @@ export default function NewOpportunityPage() {
       }
     }
   })
+
+  // Get current form data for preview
+  const formData = watch()
 
   const progress = (currentStep / steps.length) * 100
 
@@ -893,17 +900,30 @@ export default function NewOpportunityPage() {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 1}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeftIcon className="w-4 h-4" />
-                Previous
-              </Button>
+            <div className="flex justify-between items-center mt-6">
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={currentStep === 1}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  Previous
+                </Button>
+                
+                {/* Preview Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowPreview(true)}
+                  className="flex items-center gap-2"
+                >
+                  <PlayIcon className="w-4 h-4" />
+                  Preview
+                </Button>
+              </div>
 
               {currentStep < steps.length ? (
                 <Button
@@ -928,6 +948,28 @@ export default function NewOpportunityPage() {
           </form>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Opportunity Preview</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <OpportunityPreview opportunityData={{ 
+              ...formData, 
+              status: formData.status || 'draft',
+              property_address: {
+                ...formData.property_address,
+                country: formData.property_address?.country || 'US'
+              },
+              public_listing: formData.public_listing ?? false,
+              featured_listing: formData.featured_listing ?? false,
+              accredited_only: formData.accredited_only ?? true
+            }} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -13,8 +13,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { AlertCircle, Save, Eye, Send, Calendar, DollarSign, Building2, MapPin } from 'lucide-react'
+import { AlertCircle, Save, Eye, Send, Calendar, DollarSign, Building2, MapPin, PlayIcon } from 'lucide-react'
+import { OpportunityPreview } from '@/components/opportunities/OpportunityPreview'
 import { propertyTypes, investmentStrategies, exitStrategies, debtTypes, propertyConditions } from '@/lib/constants/opportunities'
 import DocumentUpload from './DocumentUpload'
 
@@ -42,6 +44,7 @@ export function OpportunityFormPRD({
   const [isDraftSaving, setIsDraftSaving] = useState(false)
   const [documents, setDocuments] = useState<any[]>([])
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
   const router = useRouter()
 
   const form = useForm<OpportunityInput>({
@@ -211,6 +214,9 @@ export function OpportunityFormPRD({
   const formState = form.formState
   const hasErrors = Object.keys(formState.errors).length > 0
   const isFormDirty = formState.isDirty
+  
+  // Get current form data for preview
+  const formData = form.watch()
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -612,6 +618,18 @@ export function OpportunityFormPRD({
                   {isDraftSaving ? 'Saving Draft...' : 'Save as Draft'}
                 </Button>
               )}
+              
+              {/* Preview Button */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPreview(true)}
+                disabled={isSubmitting}
+                className="flex items-center gap-2"
+              >
+                <PlayIcon className="h-4 w-4" />
+                Preview
+              </Button>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2">
@@ -641,6 +659,28 @@ export function OpportunityFormPRD({
           </div>
         </form>
       </Form>
+      
+      {/* Preview Modal */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Opportunity Preview</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <OpportunityPreview opportunityData={{ 
+              ...formData, 
+              status: formData.status || 'draft',
+              property_address: {
+                ...formData.property_address,
+                country: formData.property_address?.country || 'US'
+              },
+              public_listing: formData.public_listing ?? false,
+              featured_listing: formData.featured_listing ?? false,
+              accredited_only: formData.accredited_only ?? true
+            }} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
