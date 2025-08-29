@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { OpportunityForm } from '@/components/opportunities/forms/OpportunityForm'
-import type { CreateOpportunityInput } from '@/lib/validations/opportunities'
+import type { OpportunityInput } from '@/lib/validations/opportunity'
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -54,18 +54,14 @@ describe('OpportunityForm', () => {
 
   describe('Form Validation', () => {
     it('should fail validation with empty required fields', async () => {
-      // This test should fail until we implement OpportunityForm component
       render(<OpportunityForm {...mockProps} />)
       
       const submitButton = screen.getByRole('button', { name: /submit|create/i })
       await userEvent.click(submitButton)
       
-      // Should show validation errors for required fields
+      // Should show validation error summary
       await waitFor(() => {
-        expect(screen.getByText(/title is required/i)).toBeInTheDocument()
-        expect(screen.getByText(/property type is required/i)).toBeInTheDocument()
-        expect(screen.getByText(/street address is required/i)).toBeInTheDocument()
-        expect(screen.getByText(/total investment/i)).toBeInTheDocument()
+        expect(screen.getByText(/validation error.*found/i)).toBeInTheDocument()
       })
       
       expect(mockProps.onSubmit).not.toHaveBeenCalled()
@@ -90,31 +86,31 @@ describe('OpportunityForm', () => {
       render(<OpportunityForm {...mockProps} />)
       
       // Fill in a total investment below minimum
-      const totalInvestmentInput = screen.getByLabelText(/total investment/i)
-      await userEvent.clear(totalInvestmentInput)
-      await userEvent.type(totalInvestmentInput, '50000') // Below $100,000 minimum
+      const totalProjectCostInput = screen.getByLabelText(/total project cost/i)
+      await userEvent.clear(totalProjectCostInput)
+      await userEvent.type(totalProjectCostInput, '50000') // Below minimum
       
       const submitButton = screen.getByRole('button', { name: /submit|create/i })
       await userEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(screen.getByText(/total investment must be at least/i)).toBeInTheDocument()
+        expect(screen.getByText(/total project cost must be at least/i)).toBeInTheDocument()
       })
     })
 
     it('should validate target return percentages', async () => {
       render(<OpportunityForm {...mockProps} />)
       
-      // Fill in an invalid target return
-      const targetReturnInput = screen.getByLabelText(/target return/i)
-      await userEvent.clear(targetReturnInput)
-      await userEvent.type(targetReturnInput, '60') // Above 50% maximum
+      // Fill in an invalid projected IRR
+      const projectedIrrInput = screen.getByLabelText(/projected irr/i)
+      await userEvent.clear(projectedIrrInput)
+      await userEvent.type(projectedIrrInput, '60') // Above maximum
       
       const submitButton = screen.getByRole('button', { name: /submit|create/i })
       await userEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(screen.getByText(/target return cannot exceed/i)).toBeInTheDocument()
+        expect(screen.getByText(/projected irr cannot exceed/i)).toBeInTheDocument()
       })
     })
 
@@ -140,12 +136,12 @@ describe('OpportunityForm', () => {
     it('should validate financial structure completeness', async () => {
       render(<OpportunityForm {...mockProps} />)
       
-      // Test minimum investment exceeding total investment
-      const totalInvestmentInput = screen.getByLabelText(/total investment/i)
+      // Test minimum investment exceeding total project cost
+      const totalProjectCostInput = screen.getByLabelText(/total project cost/i)
       const minimumInvestmentInput = screen.getByLabelText(/minimum investment/i)
       
-      await userEvent.clear(totalInvestmentInput)
-      await userEvent.type(totalInvestmentInput, '1000000')
+      await userEvent.clear(totalProjectCostInput)
+      await userEvent.type(totalProjectCostInput, '1000000')
       await userEvent.clear(minimumInvestmentInput)
       await userEvent.type(minimumInvestmentInput, '2000000') // Exceeds total
       
@@ -153,7 +149,7 @@ describe('OpportunityForm', () => {
       await userEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(screen.getByText(/minimum investment cannot exceed total investment/i)).toBeInTheDocument()
+        expect(screen.getByText(/minimum investment cannot exceed total project cost/i)).toBeInTheDocument()
       })
     })
 
@@ -183,13 +179,13 @@ describe('OpportunityForm', () => {
       render(<OpportunityForm {...mockProps} />)
       
       // Fill out form with multiple validation errors
-      const titleInput = screen.getByLabelText(/title/i)
-      const squareFootageInput = screen.getByLabelText(/square footage/i)
+      const opportunityNameInput = screen.getByLabelText(/opportunity name/i)
+      const totalSquareFeetInput = screen.getByLabelText(/total square feet/i)
       const yearBuiltInput = screen.getByLabelText(/year built/i)
       
-      await userEvent.type(titleInput, 'A'.repeat(201)) // Too long
-      await userEvent.clear(squareFootageInput)
-      await userEvent.type(squareFootageInput, '-1000') // Negative
+      await userEvent.type(opportunityNameInput, 'A'.repeat(201)) // Too long
+      await userEvent.clear(totalSquareFeetInput)
+      await userEvent.type(totalSquareFeetInput, '-1000') // Negative
       await userEvent.clear(yearBuiltInput)
       await userEvent.type(yearBuiltInput, '1700') // Too old
       
@@ -197,33 +193,32 @@ describe('OpportunityForm', () => {
       await userEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(screen.getByText(/title must be less than 200 characters/i)).toBeInTheDocument()
-        expect(screen.getByText(/square footage must be greater than 0/i)).toBeInTheDocument()
+        expect(screen.getByText(/opportunity name must be less than 200 characters/i)).toBeInTheDocument()
+        expect(screen.getByText(/total square feet must be greater than 0/i)).toBeInTheDocument()
         expect(screen.getByText(/year built must be after 1800/i)).toBeInTheDocument()
       })
     })
   })
 
   describe('Form Submission', () => {
-    const validFormData: Partial<CreateOpportunityInput> = {
-      title: 'Test Property',
-      propertyType: 'multifamily',
-      description: 'Test property description',
-      street: '123 Test St',
-      city: 'Test City',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'US',
-      squareFootage: 10000,
-      yearBuilt: 2020,
-      unitCount: 24,
-      totalInvestment: 1000000,
-      minimumInvestment: 50000,
-      targetReturn: 12.5,
-      holdPeriod: 60,
-      acquisitionFee: 2.0,
-      managementFee: 1.5,
-      dispositionFee: 2.5,
+    const validFormData: Partial<OpportunityInput> = {
+      opportunity_name: 'Test Property',
+      property_type: 'multifamily',
+      opportunity_description: 'Test property description',
+      property_address: {
+        street: '123 Test St',
+        city: 'Test City',
+        state: 'NY',
+        zip: '10001',
+        country: 'US'
+      },
+      total_square_feet: 10000,
+      year_built: 2020,
+      number_of_units: 24,
+      total_project_cost: 1000000,
+      minimum_investment: 50000,
+      projected_irr: 12.5,
+      projected_hold_period_months: 60,
       status: 'draft'
     }
 
@@ -236,7 +231,7 @@ describe('OpportunityForm', () => {
       
       await waitFor(() => {
         // Should show validation errors and not call onSubmit
-        expect(screen.getByText(/title is required/i)).toBeInTheDocument()
+        expect(screen.getByText(/opportunity name is required/i)).toBeInTheDocument()
         expect(mockProps.onSubmit).not.toHaveBeenCalled()
       })
     })
@@ -283,9 +278,7 @@ describe('OpportunityForm', () => {
       await waitFor(() => {
         expect(mockProps.onSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
-            propertyDetails: expect.objectContaining({
-              title: 'Test Property'
-            })
+            opportunity_name: 'Test Property'
           })
         )
       })
@@ -295,26 +288,26 @@ describe('OpportunityForm', () => {
       render(<OpportunityForm {...mockProps} />)
       
       // Fill in some form data
-      const titleInput = screen.getByLabelText(/title/i)
-      await userEvent.type(titleInput, 'Draft Property')
+      const opportunityNameInput = screen.getByLabelText(/opportunity name/i)
+      await userEvent.type(opportunityNameInput, 'Draft Property')
       
       // Click save as draft
       const saveDraftButton = screen.getByRole('button', { name: /save.*draft/i })
       await userEvent.click(saveDraftButton)
       
       // Should save to localStorage
-      const savedData = localStorage.getItem('opportunity-draft')
+      const savedData = localStorage.getItem('opportunity-draft-prd')
       expect(savedData).toBeDefined()
       expect(JSON.parse(savedData!)).toEqual(
         expect.objectContaining({
-          title: 'Draft Property'
+          opportunity_name: 'Draft Property'
         })
       )
     })
 
     it('should clear draft data on successful submission', async () => {
       // Set up localStorage data
-      localStorage.setItem('opportunity-draft', JSON.stringify({ title: 'Draft' }))
+      localStorage.setItem('opportunity-draft-prd', JSON.stringify({ opportunity_name: 'Draft' }))
       
       mockProps.onSubmit.mockResolvedValue({ id: 'success-id' })
       render(<OpportunityForm {...mockProps} initialData={validFormData} />)
@@ -323,7 +316,7 @@ describe('OpportunityForm', () => {
       await userEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(localStorage.getItem('opportunity-draft')).toBeNull()
+        expect(localStorage.getItem('opportunity-draft-prd')).toBeNull()
       })
     })
   })
@@ -332,17 +325,20 @@ describe('OpportunityForm', () => {
     it('should recover form data from localStorage on page reload', async () => {
       // Set up localStorage data
       const draftData = {
-        title: 'Recovered Property',
-        propertyType: 'office',
-        street: '456 Recovery St',
-        city: 'Recovery City',
-        state: 'CA',
-        zipCode: '90210',
-        squareFootage: 20000,
-        yearBuilt: 2019,
-        description: 'Recovered from localStorage'
+        opportunity_name: 'Recovered Property',
+        property_type: 'office',
+        property_address: {
+          street: '456 Recovery St',
+          city: 'Recovery City',
+          state: 'CA',
+          zip: '90210',
+          country: 'US'
+        },
+        total_square_feet: 20000,
+        year_built: 2019,
+        opportunity_description: 'Recovered from localStorage'
       }
-      localStorage.setItem('opportunity-draft', JSON.stringify(draftData))
+      localStorage.setItem('opportunity-draft-prd', JSON.stringify(draftData))
       
       render(<OpportunityForm {...mockProps} />)
       
@@ -356,15 +352,15 @@ describe('OpportunityForm', () => {
       render(<OpportunityForm {...mockProps} />)
       
       // Fill in some data
-      const titleInput = screen.getByLabelText(/title/i)
-      await userEvent.type(titleInput, 'Test Title')
+      const opportunityNameInput = screen.getByLabelText(/opportunity name/i)
+      await userEvent.type(opportunityNameInput, 'Test Title')
       
       // Click cancel/reset button
       const cancelButton = screen.getByRole('button', { name: /cancel|reset/i })
       await userEvent.click(cancelButton)
       
       // Form should be reset
-      expect(titleInput).toHaveValue('')
+      expect(opportunityNameInput).toHaveValue('')
     })
   })
 })

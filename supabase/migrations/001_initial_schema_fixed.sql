@@ -8,24 +8,21 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Create property type enum
 CREATE TYPE property_type AS ENUM (
   'multifamily',
-  'office',
   'retail',
+  'office',
   'industrial',
-  'mixed-use',
   'land',
-  'hospitality',
-  'healthcare',
-  'self-storage',
-  'student-housing'
+  'mixed_use'
 );
 
 -- Create opportunity status enum
 CREATE TYPE opportunity_status AS ENUM (
   'draft',
-  'review',
-  'active',
+  'fundraising',
+  'due_diligence',
+  'funded',
   'closed',
-  'archived'
+  'cancelled'
 );
 
 -- Create document type enum
@@ -36,35 +33,88 @@ CREATE TYPE document_type AS ENUM (
   'additional-documents'
 );
 
--- Main investment opportunities table
+-- Main investment opportunities table (matching PRD schema)
 CREATE TABLE investment_opportunities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sponsor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title VARCHAR(200) NOT NULL,
+  
+  -- Basic opportunity information
+  opportunity_name VARCHAR NOT NULL,
+  opportunity_description TEXT,
+  status opportunity_status DEFAULT 'fundraising',
+  
+  -- Property details
+  property_address JSONB NOT NULL,
   property_type property_type NOT NULL,
-  description TEXT NOT NULL,
-  street VARCHAR(500) NOT NULL,
-  city VARCHAR(100) NOT NULL,
-  state VARCHAR(10) NOT NULL,
-  zip_code VARCHAR(20) NOT NULL,
-  country VARCHAR(2) DEFAULT 'US',
-  square_footage INTEGER NOT NULL CHECK (square_footage > 0 AND square_footage <= 50000000),
-  year_built INTEGER NOT NULL CHECK (year_built >= 1800 AND year_built <= EXTRACT(YEAR FROM NOW()) + 5),
-  unit_count INTEGER CHECK (unit_count > 0),
-  total_investment DECIMAL(15,2) NOT NULL CHECK (total_investment >= 100000 AND total_investment <= 1000000000),
-  minimum_investment DECIMAL(15,2) NOT NULL CHECK (minimum_investment >= 10000),
-  target_return DECIMAL(5,2) NOT NULL CHECK (target_return >= 1.0 AND target_return <= 50.0),
-  hold_period INTEGER NOT NULL CHECK (hold_period >= 12 AND hold_period <= 240),
-  acquisition_fee DECIMAL(5,2) DEFAULT 0.0 CHECK (acquisition_fee >= 0.0 AND acquisition_fee <= 10.0),
-  management_fee DECIMAL(5,2) DEFAULT 0.0 CHECK (management_fee >= 0.0 AND management_fee <= 5.0),
-  disposition_fee DECIMAL(5,2) DEFAULT 0.0 CHECK (disposition_fee >= 0.0 AND disposition_fee <= 10.0),
-  status opportunity_status DEFAULT 'draft',
-  is_featured BOOLEAN DEFAULT FALSE,
+  property_subtype VARCHAR,
+  total_square_feet INTEGER,
+  number_of_units INTEGER,
+  year_built INTEGER,
+  property_condition VARCHAR, -- excellent, good, fair, poor
+  
+  -- Financial structure
+  total_project_cost DECIMAL NOT NULL,
+  equity_requirement DECIMAL NOT NULL,
+  debt_amount DECIMAL,
+  debt_type VARCHAR, -- bank_loan, bridge_loan, construction_loan, none
+  loan_to_cost_ratio DECIMAL,
+  loan_to_value_ratio DECIMAL,
+  
+  -- Investment terms
+  minimum_investment DECIMAL NOT NULL,
+  maximum_investment DECIMAL,
+  target_raise_amount DECIMAL NOT NULL,
+  current_commitments DECIMAL DEFAULT 0,
+  fundraising_progress DECIMAL DEFAULT 0, -- percentage
+  
+  -- Returns and timeline
+  projected_irr DECIMAL,
+  projected_total_return_multiple DECIMAL,
+  projected_hold_period_months INTEGER,
+  cash_on_cash_return DECIMAL,
+  preferred_return_rate DECIMAL,
+  waterfall_structure JSONB,
+  
+  -- Investment strategy
+  investment_strategy VARCHAR, -- buy_hold, value_add, development, opportunistic
+  business_plan TEXT,
+  value_creation_strategy TEXT,
+  exit_strategy VARCHAR, -- sale, refinance, hold_indefinitely
+  
+  -- Timeline
+  fundraising_deadline DATE,
+  expected_closing_date DATE,
+  construction_start_date DATE,
+  stabilization_date DATE,
+  projected_exit_date DATE,
+  
+  -- Documentation
+  offering_memorandum_url VARCHAR,
+  financial_model_url VARCHAR,
+  property_photos TEXT[],
+  property_documents TEXT[], -- inspections, appraisals, environmental
+  marketing_materials TEXT[],
+  
+  -- Market analysis
+  market_analysis JSONB,
+  comparable_properties JSONB,
+  demographic_data JSONB,
+  economic_indicators JSONB,
+  
+  -- Performance tracking
+  views_count INTEGER DEFAULT 0,
+  interest_count INTEGER DEFAULT 0,
+  inquiry_count INTEGER DEFAULT 0,
+  meeting_requests_count INTEGER DEFAULT 0,
+  
+  -- Visibility and access
+  public_listing BOOLEAN DEFAULT FALSE,
+  featured_listing BOOLEAN DEFAULT FALSE,
+  accredited_only BOOLEAN DEFAULT TRUE,
+  geographic_restrictions TEXT[],
+  
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  CONSTRAINT minimum_investment_check CHECK (minimum_investment <= total_investment),
-  CONSTRAINT description_length CHECK (LENGTH(description) >= 10 AND LENGTH(description) <= 5000),
-  CONSTRAINT title_length CHECK (LENGTH(title) >= 1 AND LENGTH(title) <= 200)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Document storage table
@@ -143,8 +193,8 @@ ALTER TABLE opportunity_views ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investment_inquiries ENABLE ROW LEVEL SECURITY;
 
 -- Basic RLS policies
-CREATE POLICY "Allow public read access to active opportunities" ON investment_opportunities
-    FOR SELECT USING (status = 'active');
+CREATE POLICY "Allow public read access to fundraising opportunities" ON investment_opportunities
+    FOR SELECT USING (status = 'fundraising' AND public_listing = true);
 
 CREATE POLICY "Allow sponsors to manage their own opportunities" ON investment_opportunities
     FOR ALL USING (auth.uid() = sponsor_id);

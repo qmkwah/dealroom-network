@@ -23,7 +23,12 @@
       "Bash(pnpm type-check:*)",
       "mcp__supabase__list_tables",
       "Bash(pnpm db:types:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(del \"C:\\Users\\SONY\\Desktop\\dealroom-network\\src\\__tests__\\api\\opportunities\\create.test.ts\")",
+      "Bash(pnpm db:push:*)",
+      "Bash(pnpm supabase:*)",
+      "Bash(del \"C:\\Users\\SONY\\Desktop\\dealroom-network\\src\\components\\opportunities\\forms\\OpportunityForm.tsx\")",
+      "Bash(git rm:*)"
     ]
   }
 }

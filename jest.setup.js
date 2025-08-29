@@ -3,11 +3,19 @@ import '@testing-library/jest-dom'
 // Mock Next.js server runtime for middleware and API routes
 global.Request = global.Request || class Request {
   constructor(url, init) {
-    this.url = url
+    this._url = url
     this.method = init?.method || 'GET'
     this.headers = new Headers(init?.headers)
-    this.cookies = new Map()
+    this._cookies = new Map()
     this._body = init?.body
+  }
+  
+  get url() {
+    return this._url
+  }
+  
+  get cookies() {
+    return this._cookies
   }
   
   async json() {
@@ -18,7 +26,7 @@ global.Request = global.Request || class Request {
   }
   
   get(name) {
-    return this.cookies.get(name)
+    return this._cookies.get(name)
   }
 }
 

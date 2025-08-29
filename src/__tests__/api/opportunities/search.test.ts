@@ -76,10 +76,54 @@ describe('/api/opportunities/search GET', () => {
   mockRange.mockReturnValue(mockQueryBuilder)
   mockOrder.mockReturnValue(mockQueryBuilder)
 
-  const mockFrom = jest.fn(() => mockQueryBuilder)
+  // Create separate query builder for count query
+  const mockCountQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    ilike: jest.fn().mockReturnThis(),
+    or: jest.fn().mockReturnThis()
+  }
+
+  const mockFrom = jest.fn()
+    .mockReturnValueOnce(mockQueryBuilder) // First call for main query
+    .mockReturnValueOnce(mockCountQueryBuilder) // Second call for count query
 
   const mockSupabase = {
     from: mockFrom
+  }
+
+  const setupStandardMocks = () => {
+    // Ensure all mock functions still return the query builder
+    mockSelect.mockReturnValue(mockQueryBuilder)
+    mockEq.mockReturnValue(mockQueryBuilder)
+    mockGte.mockReturnValue(mockQueryBuilder)
+    mockLte.mockReturnValue(mockQueryBuilder)
+    mockIlike.mockReturnValue(mockQueryBuilder)
+    mockOr.mockReturnValue(mockQueryBuilder)
+    mockRange.mockReturnValue(mockQueryBuilder)
+    
+    // Setup order to return queryBuilder for chaining, then resolve on second call
+    mockOrder
+      .mockReturnValueOnce(mockQueryBuilder) // First order call returns queryBuilder for chaining
+      .mockResolvedValueOnce({ // Second order call resolves with data
+        data: mockOpportunities, 
+        error: null, 
+        count: mockOpportunities.length 
+      })
+    
+    // Setup count query mock - final call in count query chain should resolve with count
+    mockCountQueryBuilder.or.mockResolvedValue({
+      count: mockOpportunities.length,
+      error: null
+    })
+    
+    // Reset from mock for each test
+    mockFrom.mockClear()
+    mockFrom
+      .mockReturnValueOnce(mockQueryBuilder) // First call for main query
+      .mockReturnValueOnce(mockCountQueryBuilder) // Second call for count query
   }
 
   beforeEach(() => {
@@ -96,23 +140,8 @@ describe('/api/opportunities/search GET', () => {
     
     ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
     
-    // Ensure all mock functions still return the query builder
-    mockSelect.mockReturnValue(mockQueryBuilder)
-    mockEq.mockReturnValue(mockQueryBuilder)
-    mockGte.mockReturnValue(mockQueryBuilder)
-    mockLte.mockReturnValue(mockQueryBuilder)
-    mockIlike.mockReturnValue(mockQueryBuilder)
-    mockOr.mockReturnValue(mockQueryBuilder)
-    mockRange.mockReturnValue(mockQueryBuilder)
-    
-    // The final order call should resolve with data
-    mockOrder.mockResolvedValue({ 
-      data: mockOpportunities, 
-      error: null, 
-      count: mockOpportunities.length 
-    })
-    
-    mockFrom.mockReturnValue(mockQueryBuilder)
+    // Setup standard mocks
+    setupStandardMocks()
   })
 
   describe('Basic Functionality', () => {
@@ -270,7 +299,11 @@ describe('/api/opportunities/search GET', () => {
 
   describe('Error Handling', () => {
     it('should handle database errors', async () => {
-      mockOrder.mockResolvedValue({ data: null, error: { message: 'Database error' } })
+      // Reset all mocks and setup error condition
+      mockOrder.mockReset()
+      mockOrder
+        .mockReturnValueOnce(mockQueryBuilder) // First order call
+        .mockResolvedValueOnce({ data: null, error: { message: 'Database error' } }) // Second order call returns error
       
       const request = new NextRequest('http://localhost:3000/api/opportunities/search')
       
@@ -282,7 +315,11 @@ describe('/api/opportunities/search GET', () => {
     })
 
     it('should handle unexpected errors', async () => {
-      mockOrder.mockRejectedValue(new Error('Unexpected error'))
+      // Reset all mocks and setup error condition  
+      mockOrder.mockReset()
+      mockOrder
+        .mockReturnValueOnce(mockQueryBuilder) // First order call
+        .mockRejectedValueOnce(new Error('Unexpected error')) // Second order call throws error
       
       const request = new NextRequest('http://localhost:3000/api/opportunities/search')
       
@@ -291,6 +328,11 @@ describe('/api/opportunities/search GET', () => {
       
       const data = await response.json()
       expect(data.error).toBe('Internal server error')
+    })
+
+    // Reset mocks after error tests
+    afterEach(() => {
+      setupStandardMocks()
     })
   })
 
@@ -301,8 +343,8 @@ describe('/api/opportunities/search GET', () => {
       const response = await GET(request)
       expect(response.status).toBe(200)
       
-      // Verify status filter is always applied
-      expect(mockEq).toHaveBeenCalledWith('status', 'published')
+      // Verify status filter is always applied (updated to 'active' per new schema)
+      expect(mockEq).toHaveBeenCalledWith('status', 'active')
     })
 
     it('should only return public listings', async () => {

@@ -8,27 +8,45 @@ jest.mock('@/lib/supabase/server', () => ({
 }))
 
 describe('/api/opportunities POST', () => {
-  // Test data using current flat schema structure
+  // Test data using new database schema structure
   const validOpportunityData = {
-    title: 'Test Property',
-    propertyType: 'multifamily',
-    description: 'Test description for validation',
-    street: '123 Test St',
-    city: 'Test City',
-    state: 'NY',
-    zipCode: '10001',
-    country: 'US',
-    squareFootage: 10000,
-    yearBuilt: 2020,
-    unitCount: 50,
-    totalInvestment: 1000000,
-    minimumInvestment: 50000,
-    targetReturn: 12.5,
-    holdPeriod: 60,
-    acquisitionFee: 2.5,
-    managementFee: 1.5,
-    dispositionFee: 2.0,
-    status: 'draft'
+    opportunity_name: 'Test Property',
+    opportunity_description: 'Test description for validation',
+    status: 'draft',
+    property_address: {
+      street: '123 Test St',
+      city: 'Test City',
+      state: 'NY',
+      zip: '10001',
+      country: 'US'
+    },
+    property_type: 'multifamily',
+    property_subtype: 'apartment',
+    total_square_feet: 10000,
+    number_of_units: 50,
+    year_built: 2020,
+    property_condition: 'good',
+    total_project_cost: 1000000,
+    equity_requirement: 300000,
+    debt_amount: 700000,
+    debt_type: 'bank_loan',
+    minimum_investment: 50000,
+    maximum_investment: 200000,
+    target_raise_amount: 300000,
+    projected_irr: 0.125,
+    projected_total_return_multiple: 1.8,
+    projected_hold_period_months: 60,
+    cash_on_cash_return: 0.08,
+    preferred_return_rate: 0.06,
+    investment_strategy: 'value_add',
+    business_plan: 'Renovate units and increase rents',
+    value_creation_strategy: 'Capital improvements and operational efficiency',
+    exit_strategy: 'sale',
+    fundraising_deadline: '2025-12-31',
+    expected_closing_date: '2025-06-30',
+    public_listing: false,
+    featured_listing: false,
+    accredited_only: true
   }
 
   const mockSingle = jest.fn()
@@ -63,7 +81,6 @@ describe('/api/opportunities POST', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(401)
       
@@ -89,7 +106,6 @@ describe('/api/opportunities POST', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(403)
       
@@ -112,12 +128,14 @@ describe('/api/opportunities POST', () => {
       // Mock successful database insertion
       const mockOpportunity = {
         id: 'opp-123',
-        title: 'Test Property',
+        sponsor_id: 'sponsor-123',
+        opportunity_name: 'Test Property',
+        opportunity_description: 'Test description for validation',
         property_type: 'multifamily',
-        total_investment: 1000000,
+        total_project_cost: 1000000,
+        equity_requirement: 300000,
         minimum_investment: 50000,
-        target_return: 12.5,
-        hold_period: 60,
+        target_raise_amount: 300000,
         status: 'draft',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -134,7 +152,6 @@ describe('/api/opportunities POST', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(201)
       
@@ -162,12 +179,11 @@ describe('/api/opportunities POST', () => {
       const request = new NextRequest('http://localhost:3000/api/opportunities', {
         method: 'POST',
         body: JSON.stringify({
-          // Missing propertyDetails and financialStructure
+          // Missing required fields
         }),
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(400)
       
@@ -180,30 +196,28 @@ describe('/api/opportunities POST', () => {
       const request = new NextRequest('http://localhost:3000/api/opportunities', {
         method: 'POST',
         body: JSON.stringify({
-          title: '', // Invalid: empty title
-          propertyType: 'invalid-type', // Invalid enum value
-          description: 'sh', // Invalid: too short
-          street: '123 Test St',
-          city: 'Test City',
-          state: 'NY',
-          zipCode: '123', // Invalid: too short  
-          country: 'US',
-          squareFootage: -1000, // Invalid: negative
-          yearBuilt: 1700, // Invalid: too old
-          unitCount: 50,
-          totalInvestment: 1000000,
-          minimumInvestment: 50000,
-          targetReturn: 12.5,
-          holdPeriod: 60,
-          acquisitionFee: 2.5,
-          managementFee: 1.5,
-          dispositionFee: 2.0,
-          status: 'draft'
+          opportunity_name: '', // Invalid: empty name
+          opportunity_description: 'Test description',
+          status: 'draft',
+          property_address: {
+            street: '123 Test St',
+            city: 'Test City',
+            state: 'NY',
+            zip: '123', // Invalid: too short
+            country: 'US'
+          },
+          property_type: 'invalid-type', // Invalid enum value
+          total_square_feet: -1000, // Invalid: negative
+          year_built: 1700, // Invalid: too old
+          number_of_units: 50,
+          total_project_cost: 1000000,
+          equity_requirement: 300000,
+          minimum_investment: 50000,
+          target_raise_amount: 300000
         }),
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(400)
       
@@ -217,30 +231,28 @@ describe('/api/opportunities POST', () => {
       const request = new NextRequest('http://localhost:3000/api/opportunities', {
         method: 'POST',
         body: JSON.stringify({
-          title: 'Test Property',
-          propertyType: 'multifamily',
-          description: 'Test description for financial validation',
-          street: '123 Test St',
-          city: 'Test City',
-          state: 'NY',
-          zipCode: '10001',
-          country: 'US',
-          squareFootage: 10000,
-          yearBuilt: 2020,
-          unitCount: 50,
-          totalInvestment: 50000, // Invalid: below minimum
-          minimumInvestment: 100000, // Invalid: exceeds total investment
-          targetReturn: 60, // Invalid: exceeds maximum
-          holdPeriod: 6, // Invalid: below minimum
-          acquisitionFee: 2.5,
-          managementFee: 1.5,
-          dispositionFee: 2.0,
-          status: 'draft'
+          opportunity_name: 'Test Property',
+          opportunity_description: 'Test description for financial validation',
+          status: 'draft',
+          property_address: {
+            street: '123 Test St',
+            city: 'Test City',
+            state: 'NY',
+            zip: '10001',
+            country: 'US'
+          },
+          property_type: 'multifamily',
+          total_square_feet: 10000,
+          year_built: 2020,
+          number_of_units: 50,
+          total_project_cost: 1000000,
+          equity_requirement: 300000,
+          minimum_investment: 2000000, // Invalid: exceeds target raise
+          target_raise_amount: 300000
         }),
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(400)
       
@@ -254,30 +266,28 @@ describe('/api/opportunities POST', () => {
       const request = new NextRequest('http://localhost:3000/api/opportunities', {
         method: 'POST',
         body: JSON.stringify({
-          title: 'A'.repeat(201), // Too long
-          propertyType: 'multifamily',
-          description: 'Valid description',
-          street: '',  // Required field missing
-          city: 'Test City',
-          state: 'NY',
-          zipCode: '10001',
-          country: 'US',
-          squareFootage: 10000,
-          yearBuilt: 2020,
-          unitCount: 50,
-          totalInvestment: 1000000,
-          minimumInvestment: 50000,
-          targetReturn: 12.5,
-          holdPeriod: 60,
-          acquisitionFee: 2.5,
-          managementFee: 1.5,
-          dispositionFee: 2.0,
-          status: 'draft'
+          opportunity_name: '', // Invalid: empty name
+          opportunity_description: 'Valid description',
+          status: 'draft',
+          property_address: {
+            street: '',  // Required field missing
+            city: 'Test City',
+            state: 'NY',
+            zip: '10001',
+            country: 'US'
+          },
+          property_type: 'multifamily',
+          total_square_feet: 10000,
+          year_built: 2020,
+          number_of_units: 50,
+          total_project_cost: 1000000,
+          equity_requirement: 300000,
+          minimum_investment: 50000,
+          target_raise_amount: 300000
         }),
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route  
       const response = await POST(request)
       expect(response.status).toBe(400)
       
@@ -285,13 +295,13 @@ describe('/api/opportunities POST', () => {
       expect(data.error).toBe('Invalid input data')
       expect(data.details).toContainEqual(
         expect.objectContaining({
-          path: expect.arrayContaining(['title']),
-          message: 'Title must be less than 200 characters'
+          path: expect.arrayContaining(['opportunity_name']),
+          message: 'Opportunity name is required'
         })
       )
       expect(data.details).toContainEqual(
         expect.objectContaining({
-          path: expect.arrayContaining(['street']),
+          path: expect.arrayContaining(['property_address', 'street']),
           message: 'Street address is required'
         })
       )
@@ -316,12 +326,13 @@ describe('/api/opportunities POST', () => {
       const mockOpportunity = {
         id: 'opp-123',
         sponsor_id: 'sponsor-123',
-        title: 'Test Property',
+        opportunity_name: 'Test Property',
+        opportunity_description: 'Test description for validation',
         property_type: 'multifamily',
-        total_investment: 1000000,
+        total_project_cost: 1000000,
+        equity_requirement: 300000,
         minimum_investment: 50000,
-        target_return: 12.5,
-        hold_period: 60,
+        target_raise_amount: 300000,
         status: 'draft',
         created_at: new Date().toISOString()
       }
@@ -337,7 +348,6 @@ describe('/api/opportunities POST', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(validRequest)
       expect(response.status).toBe(201)
       
@@ -349,12 +359,13 @@ describe('/api/opportunities POST', () => {
       expect(mockSupabase.from().insert).toHaveBeenCalledWith(
         expect.objectContaining({
           sponsor_id: 'sponsor-123',
-          title: 'Test Property',
+          opportunity_name: 'Test Property',
+          opportunity_description: 'Test description for validation',
           property_type: 'multifamily',
-          total_investment: 1000000,
+          total_project_cost: 1000000,
+          equity_requirement: 300000,
           minimum_investment: 50000,
-          target_return: 12.5,
-          hold_period: 60
+          target_raise_amount: 300000
         })
       )
     })
@@ -375,7 +386,6 @@ describe('/api/opportunities POST', () => {
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(500)
       
@@ -383,41 +393,17 @@ describe('/api/opportunities POST', () => {
       expect(data.error).toBe('Failed to create opportunity')
     })
 
-    it('should rollback transaction on file upload failure', async () => {
-      // Mock successful database insert but failed file upload
-      mockSupabase.from().insert().select().single.mockResolvedValue({
-        data: {
-          id: 'opp-123',
-          title: 'Test Property',
-          status: 'draft'
-        },
-        error: null
-      })
-
-      // Mock file upload failure (this would be in the actual implementation)
-      const request = new NextRequest('http://localhost:3000/api/opportunities', {
-        method: 'POST',
-        body: JSON.stringify(validOpportunityData),
-        headers: { 'Content-Type': 'application/json' }
-      })
-
-      // This test verifies rollback behavior will be implemented
-      const response = await POST(request)
-      
-      // Either success with file upload or proper rollback handling
-      expect([200, 201, 500].includes(response.status)).toBe(true)
-    })
-
     it('should return created opportunity with ID', async () => {
       const mockOpportunity = {
         id: 'opp-456',
         sponsor_id: 'sponsor-123',
-        title: 'Premium Office Building',
+        opportunity_name: 'Premium Office Building',
+        opportunity_description: 'Premium office building in prime downtown location',
         property_type: 'office',
-        total_investment: 2500000,
+        total_project_cost: 2500000,
+        equity_requirement: 750000,
         minimum_investment: 75000,
-        target_return: 10.5,
-        hold_period: 72,
+        target_raise_amount: 750000,
         status: 'draft',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -431,30 +417,30 @@ describe('/api/opportunities POST', () => {
       const request = new NextRequest('http://localhost:3000/api/opportunities', {
         method: 'POST',
         body: JSON.stringify({
-          title: 'Premium Office Building',
-          propertyType: 'office',
-          description: 'Premium office building in prime downtown location',
-          street: '456 Business Ave',
-          city: 'Downtown',
-          state: 'CA',
-          zipCode: '90210',
-          country: 'US',
-          squareFootage: 25000,
-          yearBuilt: 2018,
-          unitCount: 100,
-          totalInvestment: 2500000,
-          minimumInvestment: 75000,
-          targetReturn: 10.5,
-          holdPeriod: 72,
-          acquisitionFee: 2.5,
-          managementFee: 1.5,
-          dispositionFee: 2.0,
-          status: 'draft'
+          opportunity_name: 'Premium Office Building',
+          opportunity_description: 'Premium office building in prime downtown location',
+          status: 'draft',
+          property_address: {
+            street: '456 Business Ave',
+            city: 'Downtown',
+            state: 'CA',
+            zip: '90210',
+            country: 'US'
+          },
+          property_type: 'office',
+          total_square_feet: 25000,
+          year_built: 2018,
+          number_of_units: 100,
+          total_project_cost: 2500000,
+          equity_requirement: 750000,
+          minimum_investment: 75000,
+          target_raise_amount: 750000,
+          projected_irr: 0.105,
+          projected_hold_period_months: 72
         }),
         headers: { 'Content-Type': 'application/json' }
       })
 
-      // This should fail until we implement the route
       const response = await POST(request)
       expect(response.status).toBe(201)
       

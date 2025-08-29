@@ -138,7 +138,7 @@ export default function OpportunitiesPage() {
       const params = new URLSearchParams()
       params.set('page', currentPage.toString())
       params.set('limit', pagination.limit.toString())
-      params.set('status', 'published')
+      params.set('status', 'active') // Using old status until migration completes
 
       if (currentSearchTerm) params.set('keyword', currentSearchTerm)
       if (currentFilters.property_type) params.set('property_type', currentFilters.property_type)
